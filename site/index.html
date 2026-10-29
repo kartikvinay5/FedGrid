@@ -1,0 +1,757 @@
+<title>FedGrid</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: an engineering report. A marginal rail carries the paper's own section numbers; the hero pairs the title with a live single-line diagram of the six-zone grid.
+   Color encodes the system: amber = load data that never leaves a zone, blue = model weights that travel. */
+:root{
+  --bg:#F2F4F6; --surface:#FFFFFF; --ink:#121922; --ink-2:#4D5868; --ink-3:#7C8796; --rule:#D3D9E1;
+  --load:#B86E00; --load-soft:rgba(184,110,0,.14);
+  --model:#1F4FC4; --model-soft:rgba(31,79,196,.12);
+  --bar:#B9C2CE; --bar-2:#8B97A7;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --measure:66ch;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D1218; --surface:#141B24; --ink:#E5EAF1; --ink-2:#A1ACBB; --ink-3:#6F7B8B; --rule:#263140;
+  --load:#F0A63A; --load-soft:rgba(240,166,58,.16);
+  --model:#7FA3FF; --model-soft:rgba(127,163,255,.14);
+  --bar:#3A4656; --bar-2:#56647A; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0D1218; --surface:#141B24; --ink:#E5EAF1; --ink-2:#A1ACBB; --ink-3:#6F7B8B; --rule:#263140;
+  --load:#F0A63A; --load-soft:rgba(240,166,58,.16);
+  --model:#7FA3FF; --model-soft:rgba(127,163,255,.14);
+  --bar:#3A4656; --bar-2:#56647A; color-scheme:dark }
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:18px;line-height:1.6;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+a{color:var(--model);text-underline-offset:3px}
+a:focus-visible,button:focus-visible{outline:2px solid var(--model);outline-offset:3px;border-radius:3px}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.mono{font-family:var(--f-mono)}
+.num{font-variant-numeric:tabular-nums}
+
+/* top bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)}
+.bar .wrap{display:flex;align-items:center;gap:24px;min-height:52px}
+.brand{font-family:var(--f-display);font-weight:800;font-stretch:115%;font-size:17px;letter-spacing:.01em;text-decoration:none;color:var(--ink);white-space:nowrap}
+.brand b{color:var(--model);font-weight:800}
+.nav{display:flex;gap:20px;overflow-x:auto;scrollbar-width:none;min-width:0;margin-left:auto}
+.nav::-webkit-scrollbar{display:none}
+.nav a{font-family:var(--f-mono);font-size:12.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2);text-decoration:none;white-space:nowrap;padding-block:14px}
+.nav a:hover{color:var(--ink)}
+
+/* hero */
+.hero{padding-block:56px 40px}
+.hero .wrap{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:48px;align-items:center}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);display:flex;flex-wrap:wrap;gap:6px 14px}
+.eyebrow span+span::before{content:"/";margin-right:14px;color:var(--ink-3)}
+.wordmark{font-family:var(--f-display);font-weight:900;font-stretch:125%;font-size:clamp(56px,9vw,112px);line-height:.88;letter-spacing:-.02em;margin:18px 0 18px}
+.wordmark .g{color:var(--model)}
+h1.paper-title{font-family:var(--f-display);font-weight:600;font-stretch:88%;font-size:clamp(21px,2.3vw,27px);line-height:1.22;margin:0 0 20px;text-wrap:balance;max-width:34ch}
+.thesis{font-size:19px;color:var(--ink-2);max-width:48ch;margin:0 0 26px}
+.authors{display:flex;flex-wrap:wrap;gap:4px 22px;font-family:var(--f-display);font-stretch:95%;font-weight:600;font-size:16px}
+.authors .me{color:var(--ink)}
+.affil{font-size:15px;color:var(--ink-2);margin:6px 0 0}
+.status{display:inline-flex;align-items:center;gap:8px;margin-top:22px;font-family:var(--f-mono);font-size:12px;letter-spacing:.04em;border:1px solid var(--rule);background:var(--surface);padding:6px 10px;border-radius:999px;color:var(--ink-2)}
+.status i{width:7px;height:7px;border-radius:50%;background:var(--load);display:block}
+
+/* diagram */
+.diagram{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:14px 14px 10px;min-width:0}
+.diagram-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-family:var(--f-mono);font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2);padding:0 4px 6px}
+.diagram svg{display:block;width:100%;height:auto;max-width:100%}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--f-mono);font-size:11.5px;color:var(--ink-2);padding:8px 4px 2px;border-top:1px solid var(--rule);margin-top:6px}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.sw{width:18px;height:0;border-top:2px solid}
+.sw.edge{border-color:var(--bar-2)}
+.sw.up{border-top:2px dashed var(--model)}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.dot.l{background:var(--load)} .dot.m{background:var(--model)}
+svg .edge{stroke:var(--bar-2);stroke-width:2.2}
+svg .spoke{stroke:var(--model);stroke-width:1.2;stroke-dasharray:3 5;opacity:.45}
+svg .node{fill:var(--surface);stroke:var(--ink);stroke-width:1.6}
+svg .ring{fill:none;stroke:var(--load);stroke-width:3}
+svg .halo{fill:var(--load)}
+svg .nlabel{fill:var(--ink);font-family:var(--f-mono);font-size:13px;font-weight:600}
+svg .ntype{fill:var(--ink-3);font-family:var(--f-mono);font-size:10.5px;letter-spacing:.06em}
+svg .agg{fill:var(--model-soft);stroke:var(--model);stroke-width:1.6}
+svg .aggt{fill:var(--model);font-family:var(--f-mono);font-size:12px;font-weight:600}
+svg .aggs{fill:var(--ink-2);font-family:var(--f-mono);font-size:10.5px}
+svg .pkt{fill:var(--model)}
+
+/* spec strip */
+.spec{border-block:1px solid var(--rule);background:var(--surface)}
+.spec .wrap{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:0}
+.spec .wrap>div{padding:18px 16px 16px;border-left:1px solid var(--rule)}
+.spec .wrap>div:first-child{border-left:0;padding-left:0}
+.spec dt{font-family:var(--f-mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin-bottom:4px}
+.spec dd{margin:0;font-family:var(--f-display);font-stretch:105%;font-weight:700;font-size:22px;line-height:1.15}
+.spec dd small{display:block;font-family:var(--f-body);font-weight:400;font-size:14px;color:var(--ink-2);font-stretch:100%;margin-top:2px}
+.spec .hl dd{color:var(--model)}
+
+/* sections */
+section.s{padding-block:72px 8px;scroll-margin-top:calc(env(safe-area-inset-top,0px) + 40px)}
+.s .wrap{display:grid;grid-template-columns:150px minmax(0,1fr);gap:40px}
+.rail{font-family:var(--f-mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);padding-top:10px;border-top:2px solid var(--ink);align-self:start}
+.rail b{display:block;font-family:var(--f-display);font-stretch:125%;font-weight:800;font-size:30px;color:var(--ink);letter-spacing:0;line-height:1;margin-bottom:6px}
+.body{min-width:0}
+h2{font-family:var(--f-display);font-weight:800;font-stretch:108%;font-size:clamp(28px,3.4vw,40px);line-height:1.08;letter-spacing:-.01em;margin:0 0 18px;text-wrap:balance;max-width:24ch}
+h3{font-family:var(--f-display);font-weight:700;font-stretch:100%;font-size:19px;margin:0 0 8px}
+p{margin:0 0 16px;max-width:var(--measure)}
+.lede{font-size:20px;color:var(--ink-2)}
+.cite{font-family:var(--f-mono);font-size:.72em;color:var(--model);vertical-align:.25em;text-decoration:none}
+
+/* properties */
+.props{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border:1px solid var(--rule);background:var(--surface);border-radius:6px;margin:28px 0 30px}
+.props div{padding:20px 20px 18px;border-left:1px solid var(--rule);min-width:0}
+.props div:first-child{border-left:0}
+.props .k{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.props h3{margin-top:6px}
+.props p{font-size:16px;color:var(--ink-2);margin:0}
+
+/* tables */
+.tscroll{overflow-x:auto;border:1px solid var(--rule);border-radius:6px;background:var(--surface);margin:8px 0 10px}
+table{border-collapse:collapse;width:100%;font-size:15.5px}
+th,td{padding:11px 16px;text-align:left;border-bottom:1px solid var(--rule);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+thead th{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:500;background:var(--bg)}
+td.n,th.n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:14.5px}
+tr.ours td{background:var(--model-soft)}
+tr.ours td:first-child{font-weight:600;color:var(--ink)}
+.mk{font-family:var(--f-mono);font-size:16px;text-align:center !important}
+.mk.y{color:var(--model)} .mk.n{color:var(--ink-3)}
+.caption{font-size:14px;color:var(--ink-3);font-style:italic;margin:0 0 8px}
+
+/* problem */
+.formal{border-left:3px solid var(--model);padding:4px 0 4px 20px;margin:24px 0;max-width:var(--measure)}
+.formal p{margin:0 0 10px;font-size:17px}
+.math{font-family:var(--f-body);font-style:italic}
+.goals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:10px}
+.goal{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:16px 18px}
+.goal .k{font-family:var(--f-mono);font-size:12px;color:var(--model);font-weight:600}
+.goal p{font-size:16px;margin:6px 0 0;color:var(--ink-2)}
+
+/* pipeline */
+.pipe{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:26px 0 22px;counter-reset:layer}
+.layer{position:relative;background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:18px 18px 16px;min-width:0}
+.layer .file{font-family:var(--f-mono);font-size:12.5px;color:var(--model);background:var(--model-soft);padding:2px 7px;border-radius:3px;display:inline-block;margin-bottom:10px}
+.layer ul{margin:8px 0 0;padding-left:18px;font-size:15.5px;color:var(--ink-2)}
+.layer li{margin-bottom:4px}
+.layer:not(:last-child)::after{content:"";position:absolute;right:-12px;top:34px;width:10px;height:10px;border-top:2px solid var(--ink-3);border-right:2px solid var(--ink-3);transform:rotate(45deg);z-index:1;background:transparent}
+.outputs{font-family:var(--f-mono);font-size:13px;color:var(--ink-2);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.outputs code{border:1px solid var(--rule);background:var(--surface);padding:3px 8px;border-radius:3px;color:var(--ink)}
+.setup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 32px;margin:28px 0 8px;max-width:820px}
+.setup div{display:flex;justify-content:space-between;gap:16px;border-bottom:1px solid var(--rule);padding:10px 0;font-size:16px;min-width:0}
+.setup span:first-child{color:var(--ink-2)}
+.setup span:last-child{font-family:var(--f-mono);font-size:14px;text-align:right}
+
+/* charts */
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:20px 20px 16px;margin:20px 0 14px;min-width:0}
+.panel-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+.panel-head h3{margin:0}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:5px;overflow:hidden;flex-wrap:wrap}
+.seg button{font:500 12.5px var(--f-mono);letter-spacing:.03em;background:transparent;color:var(--ink-2);border:0;border-left:1px solid var(--rule);padding:7px 12px;cursor:pointer}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.hbar{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:10px 14px;align-items:center}
+.hbar .lab{font-size:15px;line-height:1.25;min-width:0}
+.hbar .lab small{display:block;font-family:var(--f-mono);font-size:11px;color:var(--ink-3);letter-spacing:.03em}
+.track{position:relative;height:26px;min-width:0}
+.fill{position:absolute;left:0;top:3px;bottom:3px;background:var(--bar);border-radius:0 2px 2px 0;transition:width .5s cubic-bezier(.3,.7,.2,1)}
+.fill.fed{background:var(--bar-2)}
+.fill.ours{background:var(--model)}
+.fill.surge{background:var(--load)}
+.val{position:absolute;top:50%;transform:translateY(-50%);font-family:var(--f-mono);font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--ink);padding-left:8px;white-space:nowrap;transition:left .5s cubic-bezier(.3,.7,.2,1)}
+.axis{position:relative;height:22px;margin-top:6px;border-top:1px solid var(--rule)}
+.axis span{position:absolute;top:4px;transform:translateX(-50%);font-family:var(--f-mono);font-size:11px;color:var(--ink-3)}
+.gridl{position:absolute;top:0;bottom:0;width:1px;background:var(--rule);opacity:.7}
+@media (prefers-reduced-motion: reduce){.fill,.val{transition:none}}
+.deltas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border-top:1px solid var(--rule);margin-top:16px;padding-top:4px}
+.deltas>div{padding:12px 14px 4px 0;min-width:0}
+.deltas .k{font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.deltas .v{font-family:var(--f-display);font-stretch:105%;font-weight:700;font-size:24px;line-height:1.2;font-variant-numeric:tabular-nums}
+.deltas .v.good{color:var(--model)} .deltas .v.bad{color:var(--load)}
+.deltas .d{font-size:14px;color:var(--ink-2)}
+.note{font-size:15px;color:var(--ink-2);max-width:var(--measure)}
+.feat-key{display:inline-flex;gap:16px;flex-wrap:wrap;font-family:var(--f-mono);font-size:11.5px;color:var(--ink-2);margin-top:12px}
+.feat-key span{display:inline-flex;align-items:center;gap:6px}
+.feat-key i{width:12px;height:8px;display:inline-block}
+
+/* roadmap */
+.road{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:24px}
+.road .col{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:18px 20px;min-width:0}
+.road ul{list-style:none;margin:10px 0 0;padding:0}
+.road li{display:flex;gap:12px;align-items:baseline;padding:9px 0;border-top:1px solid var(--rule);font-size:16px}
+.road li:first-child{border-top:0}
+.chip{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:3px;white-space:nowrap;flex:none}
+.chip.done{background:var(--model-soft);color:var(--model)}
+.chip.next{background:var(--load-soft);color:var(--load)}
+
+/* cite */
+.bib{position:relative;background:var(--surface);border:1px solid var(--rule);border-radius:6px;margin:18px 0 8px;max-width:820px}
+.bib pre{margin:0;padding:18px 20px;overflow-x:auto;font-family:var(--f-mono);font-size:13px;line-height:1.6;color:var(--ink)}
+.copy{position:absolute;top:10px;right:10px;font:500 12px var(--f-mono);background:var(--bg);color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:5px 10px;cursor:pointer}
+.team{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:24px 0 10px}
+.team div{border-top:2px solid var(--ink);padding-top:12px}
+.team b{font-family:var(--f-display);font-weight:700;font-size:18px;display:block}
+.team span{font-size:15px;color:var(--ink-2)}
+.refs{list-style:none;padding:0;margin:18px 0 0;max-width:880px;counter-reset:r}
+.refs li{display:grid;grid-template-columns:42px minmax(0,1fr);gap:8px;font-size:15px;color:var(--ink-2);padding:9px 0;border-top:1px solid var(--rule);line-height:1.5}
+.refs li::before{counter-increment:r;content:"[" counter(r) "]";font-family:var(--f-mono);font-size:13px;color:var(--ink-3);padding-top:1px}
+.refs a{word-break:break-all}
+
+footer{margin-top:80px;border-top:1px solid var(--rule);padding-block:28px 40px;font-size:14px;color:var(--ink-3)}
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px}
+
+/* responsive */
+@media (max-width:980px){
+  .hero .wrap{grid-template-columns:minmax(0,1fr);gap:32px}
+  .spec .wrap{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .spec .wrap>div:nth-child(4){border-left:0;padding-left:0}
+  .spec .wrap>div:nth-child(n+4){border-top:1px solid var(--rule)}
+  .s .wrap{grid-template-columns:minmax(0,1fr);gap:18px}
+  .rail{display:flex;align-items:baseline;gap:12px}
+  .rail b{font-size:22px;margin:0}
+}
+@media (max-width:720px){
+  body{font-size:17px}
+  .props,.pipe,.goals,.road,.team,.setup{grid-template-columns:minmax(0,1fr)}
+  .props div{border-left:0;border-top:1px solid var(--rule)}
+  .props div:first-child{border-top:0}
+  .layer:not(:last-child)::after{right:auto;left:28px;top:auto;bottom:-12px;transform:rotate(135deg)}
+  .spec .wrap{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .spec .wrap>div{border-left:0;padding-left:0;border-top:1px solid var(--rule)}
+  .spec .wrap>div:nth-child(-n+2){border-top:0}
+  .spec .wrap>div:nth-child(even){padding-left:16px;border-left:1px solid var(--rule)}
+  .deltas{grid-template-columns:minmax(0,1fr)}
+  .hbar{grid-template-columns:minmax(0,1fr);gap:2px}
+  .hbar .track{margin-bottom:8px}
+  section.s{padding-block:56px 4px}
+}
+</style>
+<style>
+.lc svg{display:block;width:100%;height:auto}
+.lc .ax{stroke:var(--rule);stroke-width:1}
+.lc .tk{fill:var(--ink-3);font-family:var(--f-mono);font-size:11px}
+.lc .s-act{fill:none;stroke:var(--ink);stroke-width:2}
+.lc .s-ft{fill:none;stroke:var(--model);stroke-width:2}
+.lc .s-fed{fill:none;stroke:var(--load);stroke-width:1.6;stroke-dasharray:5 4}
+.lc .pk{fill:var(--ink)}
+.lc .pkl{fill:var(--ink);font-family:var(--f-mono);font-size:11px;font-weight:600}
+.lkey{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--f-mono);font-size:11.5px;color:var(--ink-2);margin-top:10px}
+.lkey span{display:inline-flex;align-items:center;gap:7px}
+.lkey i{width:20px;height:0;border-top:2px solid}
+.wf{display:grid;gap:8px;font-size:15px}
+.wfr{display:grid;grid-template-columns:minmax(120px,190px) minmax(0,1fr) 92px;grid-template-areas:"l b v";gap:4px 14px;align-items:center}
+.wfr>.l{grid-area:l;min-width:0}.wfr>.bar2{grid-area:b}.wfr>.v{grid-area:v}
+.wf .bar2{height:14px;position:relative;min-width:0}
+.wf .bar2 i{position:absolute;top:0;bottom:0;background:var(--model);border-radius:2px}
+.wf .bar2 i.neg{background:var(--load)}
+.wf .v{font-family:var(--f-mono);font-size:13px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.wfr.tot{font-weight:600;border-top:1px solid var(--rule);padding-top:8px}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border:1px solid var(--rule);border-radius:6px;background:var(--surface);margin:22px 0}
+.kpis>div{padding:16px 18px;border-left:1px solid var(--rule);min-width:0}
+.kpis>div:first-child{border-left:0}
+.kpis .k{font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.kpis .v{font-family:var(--f-display);font-stretch:105%;font-weight:700;font-size:26px;line-height:1.2;font-variant-numeric:tabular-nums}
+.kpis .d{font-size:14px;color:var(--ink-2)}
+.findings{display:grid;gap:12px;margin:22px 0 8px;max-width:var(--measure)}
+.findings div{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:baseline}
+.findings b.n{font-family:var(--f-mono);font-size:13px;color:var(--model)}
+.findings p{margin:0}
+@media (max-width:720px){.kpis{grid-template-columns:minmax(0,1fr)}.kpis>div{border-left:0;border-top:1px solid var(--rule)}.kpis>div:first-child{border-top:0}.wfr{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"l v" "b b"}.lcs svg{min-width:620px}.bib pre{padding-top:48px}}
+</style>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="brand" href="#top">Fed<b>Grid</b></a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#gap">The gap</a>
+      <a href="#data">Data</a>
+      <a href="#method">Method</a>
+      <a href="#results">Results</a>
+      <a href="#telangana">Telangana</a>
+      <a href="#explain">Explainability</a>
+      <a href="#roadmap">Roadmap</a>
+      <a href="#cite">Cite</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <h1 class="paper-title" style="font-size:clamp(28px,3.4vw,42px);font-weight:700">An Explainable Federated Graph Neural Network Framework for Privacy-Preserving Short-Term Electricity Load Forecasting in Smart Grids</h1>
+      <p class="thesis">Six southern Indian states train one load forecaster together without sharing their demand records, and every forecast comes back with the features that drove it.</p>
+      <div class="status"><i></i>Real Grid-India hourly demand, Jan 2023 – Feb 2026 · manuscript prepared for IJERESM</div>
+    </div>
+
+    <figure class="diagram" style="margin:0">
+      <div class="diagram-head"><span>Southern Region · FedAvg</span><span class="num" id="roundLabel">Round 01 / 40</span></div>
+      <svg id="grid" viewBox="0 0 480 440" role="img" aria-labelledby="gridTitle gridDesc">
+        <title id="gridTitle">Six Southern Region states joined by their eight shared borders, with a FedAvg server</title>
+        <desc id="gridDesc">Telangana, Andhra Pradesh, Karnataka, Tamil Nadu, Kerala and Puducherry each keep their demand data. Only model parameters travel to the server, which averages them and sends the global model back.</desc>
+      </svg>
+      <div class="legend">
+        <span><i class="sw edge"></i>Shared state border (8)</span>
+        <span><i class="sw up"></i>Model update path</span>
+        <span><i class="dot l"></i>Demand data, stays in state</span>
+        <span><i class="dot m"></i>Weights in transit</span>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<dl class="spec" aria-label="Experiment at a glance">
+  <div class="wrap">
+    <div class="hl"><dt>Error cut</dt><dd class="num">−10.5% RMSE<small>personalised vs plain FedAvg</small></dd></div>
+    <div><dt>Clients</dt><dd class="num">6 states<small>8 shared borders</small></dd></div>
+    <div><dt>History</dt><dd class="num">26,000+ h<small>per state, hourly</small></dd></div>
+    <div><dt>Horizon</dt><dd class="num">3 h ahead<small>short-term forecast</small></dd></div>
+    <div><dt>Federation</dt><dd class="num">40 × 5<small>rounds × local epochs</small></dd></div>
+    <div><dt>Test year</dt><dd class="num">2025<small>8,760 h per state</small></dd></div>
+  </div>
+</dl>
+
+<section class="s" id="gap">
+  <div class="wrap">
+    <div class="rail"><b>01</b>Introduction &amp; related work</div>
+    <div class="body">
+      <h2>Three properties no single pipeline had combined</h2>
+      <p class="lede">Grid operators schedule generation, plan maintenance, and ride out demand spikes on short-term load forecasts. The data that would train the best models is split across state utilities and load dispatch centres that do not pool raw consumption records.</p>
+      <p>Federated learning removes the need to centralize data by exchanging only model updates. But most federated load forecasting treats each client as independent and ignores a well-established fact: load in one region correlates with load in electrically or geographically adjacent regions. Where federated models do add that spatial structure through graph neural networks, they rarely explain individual forecasts, which limits how far an operator can trust them.</p>
+
+      <div class="props">
+        <div><span class="k">i · Federated</span><h3>Raw data stays in the state</h3><p>Only model parameters leave a state. Demand records never do.</p></div>
+        <div><span class="k">ii · Graph-aware</span><h3>Neighbours inform the forecast</h3><p>The model sees recent load in bordering states.</p></div>
+        <div><span class="k">iii · Explainable</span><h3>Every forecast has reasons</h3><p>Each prediction carries a feature attribution an operator can act on.</p></div>
+      </div>
+
+      <div class="tscroll">
+        <table>
+          <thead><tr><th>Line of prior work</th><th class="mk">Federated</th><th class="mk">Graph-aware</th><th class="mk">Explains forecasts</th><th>Examples</th></tr></thead>
+          <tbody>
+            <tr><td>Federated per-client sequence models (LSTM/GRU)</td><td class="mk y">●</td><td class="mk n">○</td><td class="mk n">○</td><td class="mono" style="font-size:13px">[1] [2] [9]</td></tr>
+            <tr><td>Federated graph neural networks</td><td class="mk y">●</td><td class="mk y">●</td><td class="mk n">○</td><td class="mono" style="font-size:13px">[10] [11]</td></tr>
+            <tr><td>Federated attention model with SHAP</td><td class="mk y">●</td><td class="mk n">○</td><td class="mk y">●</td><td class="mono" style="font-size:13px">[4]</td></tr>
+            <tr class="ours"><td>FedGrid (this work)</td><td class="mk y">●</td><td class="mk y">●</td><td class="mk y">●</td><td class="mono" style="font-size:13px">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="caption">Summarised from the paper's review: federated-plus-GNN work mostly stops at accuracy comparison, and federated-plus-XAI work mostly uses non-graph architectures.</p>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="problem">
+  <div class="wrap">
+    <div class="rail"><b>03</b>Problem statement</div>
+    <div class="body">
+      <h2>Forecast every state without pooling their data</h2>
+      <div class="formal">
+        <p>Given grid zones <span class="math">Z = {z₁, …, zₙ}</span> connected by an adjacency graph <span class="math">G = (Z, E)</span>, where each zone holds a private time series of load, weather, and calendar features,</p>
+        <p>learn a spatio-temporal forecasting model <span class="math">f<sub>θ</sub></span> across all zones, with no zone sharing raw consumption records, such that:</p>
+      </div>
+      <div class="goals">
+        <div class="goal"><span class="k">(a) Accuracy</span><p><span class="math">f<sub>θ</sub></span> beats an equivalent federated model with no graph structure, especially in peak-demand hours.</p></div>
+        <div class="goal"><span class="k">(b) Attribution</span><p>Every forecast returns the input features and neighbouring zones that most influenced it.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="data">
+  <div class="wrap">
+    <div class="rail"><b>04</b>Data</div>
+    <div class="body">
+      <h2>Hourly demand from India's grid operator</h2>
+      <p>Each client is one Southern Region state. The load series is hourly <em>demand met</em> published by Grid-India and downloaded from NITI Aayog's India Climate &amp; Energy Dashboard. The graph links states that share a land border: Telangana–Andhra Pradesh, Telangana–Karnataka, Andhra Pradesh–Karnataka, Andhra Pradesh–Tamil Nadu, Karnataka–Tamil Nadu, Karnataka–Kerala, Tamil Nadu–Kerala and Tamil Nadu–Puducherry.</p>
+      <div class="tscroll">
+        <table>
+          <thead><tr><th>State</th><th class="n">Mean demand (MW)</th><th class="n">Highest hour (MW)</th><th class="n">Copied days removed</th><th class="n">Public holidays</th></tr></thead>
+          <tbody id="dataRows"></tbody>
+        </table>
+      </div>
+      <p class="caption">Jan 2023 – Mar 2026. Values are hourly demand met, not unconstrained demand.</p>
+      <p class="note">The source repeats some blocks of data exactly: April 2024 is a copy of March 2024 in every state, and March 2026 is a copy of January 2026. Any day whose 24 hourly values match an earlier day was removed, 413 days in total. Weather is hourly temperature from Open-Meteo's historical archive at each state's main load centre (Hyderabad, Vijayawada, Bengaluru, Chennai, Kochi, Puducherry). Holidays come from each state's public-holiday calendar.</p>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="method">
+  <div class="wrap">
+    <div class="rail"><b>05</b>Method</div>
+    <div class="body">
+      <h2>A three-layer pipeline</h2>
+      <div class="pipe">
+        <div class="layer"><span class="file">data_prep.py</span><h3>Data layer</h3>
+          <ul><li>Merges the ICED exports per state</li><li>Removes copied days</li><li>Adds state holidays and hourly temperature</li></ul></div>
+        <div class="layer"><span class="file">train.py</span><h3>Model layer</h3>
+          <ul><li>Linear clients (<span class="mono" style="font-size:14px">SGDRegressor</span>); each state scales its own load</li><li>One-hop neighbour feature from bordering states</li><li>Sample-weighted FedAvg, 40 rounds × 5 epochs, then 5 local fine-tuning epochs</li></ul></div>
+        <div class="layer"><span class="file">explain.py</span><h3>Explanation layer</h3>
+          <ul><li>SHAP <span class="mono" style="font-size:14px">LinearExplainer</span></li><li>Attributions in MW for each forecast, including the neighbour feature</li></ul></div>
+      </div>
+      <div class="outputs">Outputs <code>results.json</code><code>shap_results.json</code><code>example_explanation.json</code></div>
+
+      <div class="setup">
+        <div><span>Clients / edges</span><span>6 states / 8 borders</span></div>
+        <div><span>Forecast horizon</span><span>3 h ahead</span></div>
+        <div><span>Training period</span><span>2023 – 2024</span></div>
+        <div><span>Test period</span><span>2025 (8,760 h)</span></div>
+        <div><span>Recent check</span><span>Jan – Feb 2026</span></div>
+        <div><span>Random seeds</span><span>5</span></div>
+        <div><span>Metrics</span><span>MAE · RMSE · MAPE</span></div>
+        <div><span>Peak metric</span><span>MAE, top 10% hours</span></div>
+      </div>
+      <p class="note" style="margin-top:18px">Features: load 3, 24 and 168 hours before the target hour, hour of day, weekend, state holiday, temperature, and the mean recent load of bordering states (<span class="mono" style="font-size:14px">neighbor_lagH</span>). Temperature is the observed value, standing in for a weather forecast. Stack: Python, NumPy, pandas, scikit-learn, SHAP. The linear clients stand in for the proposed graph neural network.</p>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="results">
+  <div class="wrap">
+    <div class="rail"><b>06</b>Results</div>
+    <div class="body">
+      <h2>Personalisation matters more than the graph feature</h2>
+      <p>One shared model has to fit states as different as Tamil Nadu and Puducherry. Letting each state fine-tune the federated model on its own data closes most of that gap. The neighbour feature then adds a small gain, mostly in peak hours.</p>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3 id="metricTitle">RMSE by model, MW</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:10px">
+            <div class="seg" role="group" aria-label="Metric" id="metricSeg">
+              <button type="button" id="m-mae" data-k="mae" aria-pressed="false">MAE</button>
+              <button type="button" id="m-rmse" data-k="rmse" aria-pressed="true">RMSE</button>
+              <button type="button" id="m-mape" data-k="mape" aria-pressed="false">MAPE %</button>
+              <button type="button" id="m-peak" data-k="peak_mae" aria-pressed="false">Peak MAE</button>
+            </div>
+            <div class="seg" role="group" aria-label="Period" id="periodSeg">
+              <button type="button" id="p-test" data-k="test" aria-pressed="true">2025</button>
+              <button type="button" id="p-extra" data-k="extra" aria-pressed="false">Jan–Feb 2026</button>
+            </div>
+          </div>
+        </div>
+        <div class="hbar" id="modelBars"></div>
+        <div class="hbar" aria-hidden="true"><div></div><div class="axis" id="modelAxis"></div></div>
+        <div class="deltas" id="deltas"></div>
+      </div>
+
+      <div class="tscroll">
+        <table>
+          <thead><tr><th>Model</th><th class="n">MAE (MW)</th><th class="n">RMSE (MW)</th><th class="n">MAPE (%)</th><th class="n">Peak MAE (MW)</th></tr></thead>
+          <tbody id="resRows"></tbody>
+        </table>
+      </div>
+      <p class="caption">Table 1. All six states pooled, 2025 test year, mean ± standard deviation over 5 seeds. Lower is better.</p>
+
+      <div class="findings">
+        <div><b class="n">1</b><p><strong>Plain FedAvg underfits.</strong> A single global linear model is worse than training each state alone, because the states' load patterns differ. Pooling all data into one centralized model has the same problem, so it is not an upper bound here.</p></div>
+        <div><b class="n">2</b><p><strong>Personalised federation works.</strong> Five local fine-tuning epochs cut RMSE by about 10% against plain FedAvg and match or beat each state training alone, with lower peak-hour error.</p></div>
+        <div><b class="n">3</b><p><strong>The neighbour feature helps a little.</strong> With personalisation it lowers peak-hour MAE by under 1% and RMSE by about 0.2%. Without personalisation it gives no gain. This is far smaller than the 1.8% the simulated data suggested.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="telangana">
+  <div class="wrap">
+    <div class="rail"><b>06</b>Telangana</div>
+    <div class="body">
+      <h2>Telangana's peak week, 17–23 March 2025</h2>
+      <p>Telangana's highest hour in 2025 came at 4 pm on 20 March, when demand met reached 16,756 MW. The chart shows the week around it, with forecasts made 3 hours ahead.</p>
+      <div class="kpis" id="tgKpis"></div>
+      <div class="panel lc">
+        <div class="panel-head"><h3>Hourly demand met, MW</h3></div>
+        <div class="lcs" style="overflow-x:auto"><svg id="tgChart" viewBox="0 0 760 300" role="img" aria-label="Telangana hourly demand and forecasts, 17 to 23 March 2025"></svg></div>
+        <div class="lkey"><span><i style="border-color:var(--ink)"></i>Actual</span><span><i style="border-color:var(--model)"></i>Personalised federated, graph-aware</span><span><i style="border-top:2px dashed var(--load)"></i>Plain FedAvg, graph-aware</span></div>
+      </div>
+      <div class="tscroll">
+        <table>
+          <thead><tr><th>State</th><th class="n">Plain FedAvg</th><th class="n">Personalised federated</th><th class="n">State alone</th><th class="n">Change vs plain</th></tr></thead>
+          <tbody id="zoneRows"></tbody>
+        </table>
+      </div>
+      <p class="caption">RMSE in MW per state, 2025, graph-aware models, mean of 5 seeds.</p>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="explain">
+  <div class="wrap">
+    <div class="rail"><b>07</b>Explainability</div>
+    <div class="body">
+      <h2>What drives Telangana's forecasts</h2>
+      <p>SHAP attributions for Telangana's personalised model, in MW. Yesterday's load at the same hour dominates, followed by the latest reading 3 hours earlier. In peak hours both matter more, and temperature rises in importance.</p>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Mean |SHAP| by feature, MW</h3>
+          <div class="seg" role="group" aria-label="Window" id="shapSeg">
+            <button type="button" id="w-all" data-k="all_hours" aria-pressed="true">All hours</button>
+            <button type="button" id="w-peak" data-k="peak_windows" aria-pressed="false">Peak hours</button>
+          </div>
+        </div>
+        <div class="hbar" id="shapBars"></div>
+        <div class="hbar" aria-hidden="true"><div></div><div class="axis" id="shapAxis"></div></div>
+        <div class="feat-key"><span><i style="background:var(--model)"></i>Graph feature</span><span><i style="background:var(--load)"></i>Weather</span><span><i style="background:var(--bar-2)"></i>Local features</span></div>
+      </div>
+      <p class="caption">Table 2. Mean absolute SHAP values, Telangana, 2025. Peak hours are the top 10% of hourly demand.</p>
+
+      <div class="panel">
+        <div class="panel-head"><h3>One forecast, explained: 20 Mar 2025, 4 pm</h3></div>
+        <div class="wf" id="wf"></div>
+      </div>
+      <p class="note">The neighbour feature has the smallest attribution, about <span id="nbAll"></span> MW on average and <span id="nbPeak"></span> MW in peak hours. A linear model can only use neighbouring load as a straight-line adjustment, which is one reason the graph attention network remains the main next step.</p>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="roadmap">
+  <div class="wrap">
+    <div class="rail"><b>08</b>Discussion &amp; future work</div>
+    <div class="body">
+      <h2>From linear stand-in to graph attention network</h2>
+      <p>On real data the federated system works once each state can personalise the shared model. The graph feature's benefit is small with a linear model and state-level data. States are large, and their demand is driven mostly by their own daily cycle. The open question for the next stage is whether a graph attention network, or finer zones such as substations, gets more out of neighbouring load.</p>
+      <div class="road">
+        <div class="col"><h3>Built</h3>
+          <ul>
+            <li><span class="chip done">Done</span>Real six-state dataset with copied-day removal, holidays and weather</li>
+            <li><span class="chip done">Done</span>Sample-weighted FedAvg with personalised fine-tuning</li>
+            <li><span class="chip done">Done</span>One-hop neighbour feature from bordering states</li>
+            <li><span class="chip done">Done</span>SHAP attributions in MW, overall and in peak hours</li>
+            <li><span class="chip done">Done</span>Five-seed evaluation on a full held-out year</li>
+          </ul></div>
+        <div class="col"><h3>Next</h3>
+          <ul>
+            <li><span class="chip next">Planned</span>Graph attention network in PyTorch Geometric</li>
+            <li><span class="chip next">Planned</span>Flower federated framework and FedProx</li>
+            <li><span class="chip next">Planned</span>Substation or district data from TGTRANSCO</li>
+            <li><span class="chip next">Planned</span>Earlier years, 2017–2022</li>
+            <li><span class="chip next">Planned</span>SHAP vs GNNExplainer, communication cost</li>
+          </ul></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="cite">
+  <div class="wrap">
+    <div class="rail"><b>—</b>Team &amp; citation</div>
+    <div class="body">
+      <h2>Cite this work</h2>
+      <div class="team">
+        <div><b>B. Bethi Ikshitha</b><span>Dept. of CSE, KLEF Hyderabad</span></div>
+        <div><b>G. Srivardhan Rao</b><span>Dept. of CSE, KLEF Hyderabad</span></div>
+        <div><b>B. Bala Karthik Vinay</b><span>Dept. of CSE, KLEF Hyderabad</span></div>
+      </div>
+      <div class="bib">
+        <button class="copy" type="button" id="copyBib">Copy BibTeX</button>
+<pre id="bibText">@unpublished{ikshitha2026fedgrid,
+  title  = {An Explainable Federated Graph Neural Network Framework for
+            Privacy-Preserving Short-Term Electricity Load Forecasting
+            in Smart Grids},
+  author = {{B. Bethi Ikshitha} and {G. Srivardhan Rao} and
+            {B. Bala Karthik Vinay}},
+  note   = {Manuscript prepared for IJERESM. Koneru Lakshmaiah
+            Education Foundation, Hyderabad},
+  year   = {2026}
+}</pre>
+      </div>
+
+      <h3 style="margin-top:36px">Data sources</h3>
+      <p class="note">Hourly state demand met: Grid-India, via <a href="https://iced.niti.gov.in/energy/electricity/distribution/national-level-consumption/load-curve">NITI Aayog ICED</a>. Hourly temperature: <a href="https://open-meteo.com/en/docs/historical-weather-api">Open-Meteo historical weather</a>. Holidays: the <span class="mono" style="font-size:14px">holidays</span> Python package, state calendars.</p>
+
+      <h3 style="margin-top:36px">References</h3>
+      <ol class="refs">
+        <li><span>H. Wang, Y. Zhao, S. He, Y. Xiao, J. Tang, and Z. Cai, “Federated learning-based privacy-preserving electricity load forecasting scheme in edge computing scenario,” <i>International Journal of Communication Systems</i>, vol. 37, no. 5, e5670, 2023. <a href="https://doi.org/10.1002/dac.5670">doi:10.1002/dac.5670</a></span></li>
+        <li><span>Y. Li et al., “Fed-SAD: A secure aggregation federated learning method for distributed short-term load forecasting,” <i>IET Generation, Transmission &amp; Distribution</i>, vol. 17, no. 22, pp. 5090–5100, 2023. <a href="https://doi.org/10.1049/gtd2.13022">doi:10.1049/gtd2.13022</a></span></li>
+        <li><span>C. Sun, Y. Ning, D. Shen, and T. Nie et al., “Graph Neural Network-Based Short-Term Load Forecasting with Temporal Convolution,” <i>Data Science and Engineering</i>, vol. 9, pp. 113–132, 2024. <a href="https://doi.org/10.1007/s41019-023-00233-8">doi:10.1007/s41019-023-00233-8</a></span></li>
+        <li><span>M. A. A. Sarker, B. Shanmugam, S. Azam, and S. Thennadil, “Enhancing smart grid load forecasting: An attention-based deep learning model integrated with federated learning and XAI for security and interpretability,” <i>Intelligent Systems with Applications</i>, vol. 23, 200422, 2024. <a href="https://doi.org/10.1016/j.iswa.2024.200422">doi:10.1016/j.iswa.2024.200422</a></span></li>
+        <li><span>“Electricity demand forecasting at distribution and household levels using explainable causal graph neural network,” <i>Energy and AI</i>, vol. 16, 100368, 2024. <a href="https://doi.org/10.1016/j.egyai.2024.100368">doi:10.1016/j.egyai.2024.100368</a></span></li>
+        <li><span>“Adaptive Single-layer Aggregation Framework for Energy-efficient and Privacy-preserving Load Forecasting in Heterogeneous Federated Smart Grids,” <i>Internet of Things</i>, vol. 28, 101376, 2024. <a href="https://doi.org/10.1016/j.iot.2024.101376">doi:10.1016/j.iot.2024.101376</a></span></li>
+        <li><span>H. Jiang, Y. Dong, Y. Dong, and J. Wang, “Power load forecasting based on spatial–temporal fusion graph convolution network,” <i>Technological Forecasting and Social Change</i>, vol. 204, 123435, 2024. <a href="https://doi.org/10.1016/j.techfore.2024.123435">doi:10.1016/j.techfore.2024.123435</a></span></li>
+        <li><span>“A Multi-Scale Spatial–Temporal Graph Neural Network-Based Method of Multienergy Load Forecasting in Integrated Energy System,” <i>IEEE Transactions on Smart Grid</i>, vol. 15, no. 3, pp. 2652–2666, 2024. <a href="https://doi.org/10.1109/TSG.2023.3315750">doi:10.1109/TSG.2023.3315750</a></span></li>
+        <li><span>R. Rahman, N. Kumar, and D. C. Nguyen, “Electrical Load Forecasting in Smart Grid: A Personalized Federated Learning Approach,” arXiv:2411.10619, 2024. <a href="https://arxiv.org/abs/2411.10619">arXiv:2411.10619</a></span></li>
+        <li><span>M. Yang et al., “Federated Two-Edge Graph Attention Network with Weighted Global Aggregation for Electricity Consumption Demand Forecasting,” <i>Scientific Reports</i>, vol. 15, 45792, 2025. <a href="https://doi.org/10.1038/s41598-025-28610-5">doi:10.1038/s41598-025-28610-5</a></span></li>
+        <li><span>“Federated Hybrid Graph Attention Network with Two-Step Optimization for Electricity Consumption Forecasting,” <i>Energies</i>, vol. 18, no. 17, 4465, 2025. <a href="https://doi.org/10.3390/en18174465">doi:10.3390/en18174465</a></span></li>
+      </ol>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>FedGrid · Dept. of CSE, Koneru Lakshmaiah Education Foundation, Hyderabad</span>
+    <span>Data: Grid-India via NITI Aayog ICED. The grid animation is illustrative.</span>
+  </div>
+</footer>
+
+<script>
+var RES={"dataset":"NITI Aayog ICED hourly state demand met (source: Grid-India), Southern Region","zones":{"TG":"Telangana","AP":"Andhra Pradesh","KA":"Karnataka","TN":"Tamil Nadu","KL":"Kerala","PY":"Puducherry"},"train":["2023-01-01","2024-12-31"],"test":["2025-01-01","2025-12-31"],"extra_test":["2026-01-01","2026-02-28"],"horizon_h":3,"rounds":40,"local_epochs":5,"seeds":[0,1,2,3,4],"temperature":true,"rows":{"AP":{"train":15336,"test":8760,"extra":1416},"KA":{"train":15672,"test":8760,"extra":1416},"KL":{"train":16488,"test":8760,"extra":1416},"PY":{"train":15816,"test":8760,"extra":1416},"TG":{"train":15672,"test":8760,"extra":1416},"TN":{"train":15336,"test":8760,"extra":1416}},"features_local":["lagH","lag24","lag168","hod_sin","hod_cos","is_weekend","is_holiday","temperature_c"],"features_graph":["lagH","lag24","lag168","hod_sin","hod_cos","is_weekend","is_holiday","temperature_c","neighbor_lagH"],"models":{"central_local":{"test":{"pooled":{"mae":{"mean":351.6676786797991,"std":1.71993744581449},"rmse":{"mean":533.9638698429808,"std":1.5824659060441868},"mape":{"mean":4.592219643367555,"std":0.02623425004441723},"peak_mae":{"mean":383.1080084376957,"std":14.701121990759306}},"per_zone":{"AP":{"mae":337.224382381998,"rmse":453.88635386086946,"mape":3.732939499254685,"peak_mae":411.7588331108944},"KA":{"mae":513.4538832824667,"rmse":655.3643288229716,"mape":4.904749866677955,"peak_mae":524.7003745097079},"KL":{"mae":163.44935736019895,"rmse":212.982925250027,"mape":4.826086063763119,"peak_mae":220.66915504178138},"PY":{"mae":18.908685882379473,"rmse":25.70051584945582,"mape":5.149982189819545,"peak_mae":25.482399681094762},"TG":{"mae":485.8424737628434,"rmse":651.031260013381,"mape":4.928296065065562,"peak_mae":484.7459374390104},"TN":{"mae":591.1272894089082,"rmse":777.9878993049134,"mape":4.011264175624463,"peak_mae":632.1078476673304}}},"extra":{"pooled":{"mae":{"mean":365.44004436555605,"std":3.642675090713683},"rmse":{"mean":550.525027408037,"std":5.809942345234514},"mape":{"mean":4.437169866966012,"std":0.039720850178722934},"peak_mae":{"mean":455.772328790079,"std":25.16089176478165}},"per_zone":{"AP":{"mae":318.9721841465623,"rmse":422.6486754577025,"mape":3.2684243591566124,"peak_mae":454.42254937904244},"KA":{"mae":504.077583329845,"rmse":622.1587751584123,"mape":3.971874066787052,"peak_mae":546.5152485259475},"KL":{"mae":167.43359384109274,"rmse":215.56704814904788,"mape":4.727356898002098,"peak_mae":224.53324246418052},"PY":{"mae":16.651416774326364,"rmse":21.618685567871097,"mape":4.963933027348624,"peak_mae":27.55994794468545},"TG":{"mae":563.1411883107527,"rmse":729.0696478482314,"mape":5.298301322835132,"peak_mae":573.3678208620183},"TN":{"mae":622.3642997907575,"rmse":821.1105215347694,"mape":4.393129527666549,"peak_mae":908.2351635645995}}}},"central_graph":{"test":{"pooled":{"mae":{"mean":351.1876789382374,"std":2.0721481040597127},"rmse":{"mean":533.8084221345823,"std":1.9765280280867732},"mape":{"mean":4.586347942869078,"std":0.03390793433716366},"peak_mae":{"mean":384.59688741758225,"std":16.689078111320406}},"per_zone":{"AP":{"mae":335.9313725188846,"rmse":452.79979070556436,"mape":3.719920990364102,"peak_mae":407.3636904784323},"KA":{"mae":510.3807114513273,"rmse":652.5536518546589,"mape":4.880902997309859,"peak_mae":523.7492758598509},"KL":{"mae":163.03718307273846,"rmse":212.5633064241121,"mape":4.818793625092373,"peak_mae":219.69698370928728},"PY":{"mae":18.899929166125293,"rmse":25.683141471503063,"mape":5.1499668437482615,"peak_mae":25.190469214279815},"TG":{"mae":486.0803410186675,"rmse":651.2220591758355,"mape":4.926154243088277,"peak_mae":491.35482520150424},"TN":{"mae":592.7965364016815,"rmse":780.2868180178546,"mape":4.022348957611592,"peak_mae":641.046642640777}}},"extra":{"pooled":{"mae":{"mean":364.35314360052195,"std":3.114586364580521},"rmse":{"mean":549.4293851040227,"std":5.2817763507015245},"mape":{"mean":4.426612130843754,"std":0.03356634918975649},"peak_mae":{"mean":449.6255224097661,"std":29.757137249169503}},"per_zone":{"AP":{"mae":316.209763366997,"rmse":418.94105005105837,"mape":3.244356902456545,"peak_mae":443.40994347309544},"KA":{"mae":497.1850216472343,"rmse":614.2656674443984,"mape":3.919382738586534,"peak_mae":540.2696687006257},"KL":{"mae":166.75939030688792,"rmse":214.89850909553888,"mape":4.71556167548405,"peak_mae":222.47646490671536},"PY":{"mae":16.589323413265923,"rmse":21.53555131825721,"mape":4.950695728022288,"peak_mae":26.884609793028897},"TG":{"mae":567.4504747726371,"rmse":733.8929948926796,"mape":5.331734330569889,"peak_mae":572.8250317826702},"TN":{"mae":621.9248880961089,"rmse":820.3392553181108,"mape":4.3979414099432175,"peak_mae":891.8874158024612}}}},"fed_local":{"test":{"pooled":{"mae":{"mean":358.23165515751504,"std":0.9816869339440092},"rmse":{"mean":543.6177307788242,"std":1.3352364607558975},"mape":{"mean":4.647254565340818,"std":0.00424341243681239},"peak_mae":{"mean":389.6492930259491,"std":4.934905819218035}},"per_zone":{"AP":{"mae":339.0371750297737,"rmse":454.679277778688,"mape":3.742711351528773,"peak_mae":408.8681524007078},"KA":{"mae":535.5105572746522,"rmse":681.9225766066565,"mape":5.055564867844905,"peak_mae":567.8370007523921},"KL":{"mae":166.28921289512397,"rmse":215.36973546492874,"mape":4.903641841947705,"peak_mae":231.14701603352052},"PY":{"mae":18.818089763718866,"rmse":25.525176201644435,"mape":5.120273784110148,"peak_mae":25.67315188996602},"TG":{"mae":503.56658738076624,"rmse":678.0562286928189,"mape":5.089004542987986,"peak_mae":496.12421417336355},"TN":{"mae":586.1683086010552,"rmse":771.0756418645404,"mape":3.9723310036253885,"peak_mae":609.0772186617628}}},"extra":{"pooled":{"mae":{"mean":399.3862839268093,"std":2.869785466584906},"rmse":{"mean":598.5330977742767,"std":4.198416484734741},"mape":{"mean":4.767007198919531,"std":0.025604932859530832},"peak_mae":{"mean":501.18889466319433,"std":8.545703378664523}},"per_zone":{"AP":{"mae":352.065441917062,"rmse":465.7941865825286,"mape":3.5826453970344567,"peak_mae":502.06518024667696},"KA":{"mae":560.5816426251662,"rmse":694.6800550037333,"mape":4.388863459522229,"peak_mae":593.4946621237219},"KL":{"mae":175.81196767882727,"rmse":224.8475060021518,"mape":4.966308167667189,"peak_mae":241.73165213511817},"PY":{"mae":17.027604641266123,"rmse":22.129482216626307,"mape":5.0609019202303465,"peak_mae":29.6889725655147},"TG":{"mae":648.392014252795,"rmse":829.3158539262018,"mape":6.0929706903608185,"peak_mae":660.6544452596659},"TN":{"mae":642.4390324457393,"rmse":843.2492137501009,"mape":4.5103535587021435,"peak_mae":979.4984556484684}}}},"fed_graph":{"test":{"pooled":{"mae":{"mean":359.30596345401955,"std":1.0005227365023306},"rmse":{"mean":544.5963498670757,"std":1.3397234964976084},"mape":{"mean":4.65989569043733,"std":0.004501365020171967},"peak_mae":{"mean":390.064704272762,"std":4.551826351595606}},"per_zone":{"AP":{"mae":341.02972556668146,"rmse":456.7815334394606,"mape":3.7631020486937325,"peak_mae":412.64239641929754},"KA":{"mae":538.4138611450346,"rmse":684.7637042785148,"mape":5.079890163939413,"peak_mae":566.3848497710075},"KL":{"mae":166.87484902566243,"rmse":215.98303474899285,"mape":4.916126788056531,"peak_mae":234.3375015991816},"PY":{"mae":18.833625629383807,"rmse":25.536839256259363,"mape":5.12194695748357,"peak_mae":26.148424021913222},"TG":{"mae":506.06294195732914,"rmse":681.0204912478232,"mape":5.117250087722876,"peak_mae":491.9122016045334},"TN":{"mae":584.6207774000261,"rmse":768.670558985593,"mape":3.9610580967278617,"peak_mae":609.7937113079695}}},"extra":{"pooled":{"mae":{"mean":400.28605163103083,"std":3.0387213867331124},"rmse":{"mean":599.2379696682476,"std":4.360079832805849},"mape":{"mean":4.777671301444972,"std":0.027326314809678943},"peak_mae":{"mean":502.33365212722373,"std":8.06377195357373}},"per_zone":{"AP":{"mae":354.0961367757505,"rmse":467.776599426856,"mape":3.602112501100173,"peak_mae":505.9667942614107},"KA":{"mae":563.1240336456765,"rmse":697.5088440302519,"mape":4.408960471093849,"peak_mae":593.4452688488444},"KL":{"mae":176.78078872698322,"rmse":225.90823839845226,"mape":4.9845654827705514,"peak_mae":245.99640683874844},"PY":{"mae":17.018748658055397,"rmse":22.152248119002827,"mape":5.0599510083025,"peak_mae":29.884145455566717},"TG":{"mae":648.9269613404126,"rmse":829.3878371704816,"mape":6.1069325648028325,"peak_mae":656.452224358781},"TN":{"mae":641.7696406393068,"rmse":842.463367396769,"mape":4.503505780599928,"peak_mae":982.257072999991}}}},"fed_local_ft":{"test":{"pooled":{"mae":{"mean":317.4317446478266,"std":0.20835253668438752},"rmse":{"mean":488.03207130214315,"std":0.4594987276083701},"mape":{"mean":4.214166387860702,"std":0.0020089614350182216},"peak_mae":{"mean":335.58319651376485,"std":2.5162480309534354}},"per_zone":{"AP":{"mae":299.50322931270296,"rmse":416.5249668467869,"mape":3.3288827777943633,"peak_mae":347.11558171645083},"KA":{"mae":469.3331529009796,"rmse":613.4327374185381,"mape":4.56277593514029,"peak_mae":458.36119261909755},"KL":{"mae":149.05098299413086,"rmse":195.1823615730205,"mape":4.433424981041721,"peak_mae":184.4297216676494},"PY":{"mae":18.557286326031903,"rmse":24.62412973936451,"mape":5.029705188433472,"peak_mae":24.526378879783653},"TG":{"mae":402.2743609641531,"rmse":553.6128423513885,"mape":4.113979187483725,"peak_mae":392.68516060388345},"TN":{"mae":565.8714553889611,"rmse":730.7881469480428,"mape":3.816230257270644,"peak_mae":607.0913189784503}}},"extra":{"pooled":{"mae":{"mean":332.51064555385346,"std":3.139874231988644},"rmse":{"mean":519.4358209491422,"std":4.583161932701858},"mape":{"mean":4.140853279724515,"std":0.016482528703420308},"peak_mae":{"mean":474.40731963093583,"std":11.556628532616765}},"per_zone":{"AP":{"mae":286.7429921562225,"rmse":392.58609091309825,"mape":2.9110511570156548,"peak_mae":476.175721747432},"KA":{"mae":414.9508059138643,"rmse":525.6810551430683,"mape":3.305169429248468,"peak_mae":514.2711235553783},"KL":{"mae":149.0231487564983,"rmse":188.72755021026444,"mape":4.248043549332265,"peak_mae":181.513608770798},"PY":{"mae":19.174808344734704,"rmse":24.686364381296237,"mape":5.648339283705335,"peak_mae":34.83945734172234},"TG":{"mae":412.7982269078278,"rmse":567.8122988402133,"mape":3.810540707201767,"peak_mae":498.15042344553603},"TN":{"mae":712.3738912439737,"rmse":910.6244633129024,"mape":4.921975551843593,"peak_mae":1141.4935829247486}}}},"fed_graph_ft":{"test":{"pooled":{"mae":{"mean":316.2727009314475,"std":0.44608504019906525},"rmse":{"mean":487.1454045190082,"std":0.6131573837760083},"mape":{"mean":4.20621115683318,"std":0.003732069401144671},"peak_mae":{"mean":332.8319018336865,"std":3.4681743298938588}},"per_zone":{"AP":{"mae":296.2471819249496,"rmse":413.586374213805,"mape":3.296623645415518,"peak_mae":333.8734857792872},"KA":{"mae":467.2725499161155,"rmse":615.4527111388991,"mape":4.547501917501415,"peak_mae":451.54245447905726},"KL":{"mae":149.80038190169398,"rmse":195.80901204133107,"mape":4.4500194827105295,"peak_mae":187.88581622301132},"PY":{"mae":18.586242890571356,"rmse":24.69260874502521,"mape":5.033119902162817,"peak_mae":24.79093737938248},"TG":{"mae":402.60817549649926,"rmse":553.6126576191843,"mape":4.11659412802903,"peak_mae":392.2567662587538},"TN":{"mae":563.1216734588554,"rmse":727.024138052009,"mape":3.7934078651797756,"peak_mae":607.3452407558104}}},"extra":{"pooled":{"mae":{"mean":328.6109133135027,"std":3.01176772569133},"rmse":{"mean":515.7982153337628,"std":4.683768616622395},"mape":{"mean":4.106036462894587,"std":0.013596818601087848},"peak_mae":{"mean":478.7097262891827,"std":11.851318184565558}},"per_zone":{"AP":{"mae":283.0741965577805,"rmse":389.2723443545849,"mape":2.874844445190574,"peak_mae":463.61885013329083},"KA":{"mae":397.34624796083887,"rmse":507.6942835636179,"mape":3.169681325609114,"peak_mae":468.70555300772},"KL":{"mae":149.94040475564785,"rmse":189.58525898110366,"mape":4.264020018344072,"peak_mae":187.15500279508697},"PY":{"mae":19.20093258188099,"rmse":24.791378980524577,"mape":5.646982486518084,"peak_mae":36.13436917492123},"TG":{"mae":413.1064308211509,"rmse":566.5752783399568,"mape":3.8096164900809883,"peak_mae":500.6484306313805},"TN":{"mae":708.9972672037168,"rmse":910.415683852915,"mape":4.871074011624692,"peak_mae":1215.9961519926965}}}},"solo_graph":{"test":{"pooled":{"mae":{"mean":316.57473404313447,"std":0.909178932879144},"rmse":{"mean":487.82015291437455,"std":0.9092603053105557},"mape":{"mean":4.211512739826824,"std":0.005481214918845727},"peak_mae":{"mean":340.3223094659659,"std":7.938824655628421}},"per_zone":{"AP":{"mae":294.49030162821236,"rmse":412.07666369428097,"mape":3.2811185432319903,"peak_mae":324.2011958463365},"KA":{"mae":470.0449431106223,"rmse":617.6418062240314,"mape":4.570495183426537,"peak_mae":469.3963520090927},"KL":{"mae":149.6261910068494,"rmse":196.16611089410688,"mape":4.4490623067010535,"peak_mae":193.9427099915009},"PY":{"mae":18.6559061905733,"rmse":24.767762814336667,"mape":5.050174652454187,"peak_mae":25.2544266035278},"TG":{"mae":404.0439297167984,"rmse":554.7509548513024,"mape":4.138651874334004,"peak_mae":402.18873762902086},"TN":{"mae":562.5871326057511,"rmse":727.7791353758975,"mape":3.7795738788131663,"peak_mae":627.6697677822126}}},"extra":{"pooled":{"mae":{"mean":329.3759290034528,"std":3.2824772390664747},"rmse":{"mean":516.9690034615147,"std":4.617132079884141},"mape":{"mean":4.093993142277652,"std":0.012725691262286466},"peak_mae":{"mean":492.7382794281374,"std":11.277495764101403}},"per_zone":{"AP":{"mae":279.03217523557885,"rmse":383.3814065274023,"mape":2.8388309895838444,"peak_mae":449.44066846284124},"KA":{"mae":403.3031915356893,"rmse":513.7331172476328,"mape":3.2064941210021267,"peak_mae":490.41962495051956},"KL":{"mae":148.4260260388806,"rmse":187.88345848720965,"mape":4.218383317355423,"peak_mae":193.4320664814251},"PY":{"mae":19.072182879219188,"rmse":24.65152301775357,"mape":5.613187856178536,"peak_mae":36.138005099086165},"TG":{"mae":418.5282860957627,"rmse":570.5799025878885,"mape":3.83160948585101,"peak_mae":544.2549697987836},"TN":{"mae":707.893712235586,"rmse":911.2774633714878,"mape":4.855453083694977,"peak_mae":1242.744341776169}}}}}}, SHAPR={"global_fed_graph_sigma_units":{"lag24":0.4773126441817616,"lagH":0.279434357176285,"lag168":0.12920718998650874,"is_weekend":0.07608009678651434,"hod_cos":0.07364707046044858,"hod_sin":0.034354322269886946,"is_holiday":0.013482339335013107,"temperature_c":0.012429507191019144,"neighbor_lagH":0.0048549024121114105},"telangana_personalised_mw":{"all_hours":{"lag24":1532.529063888281,"lagH":392.0444885709204,"hod_sin":181.4689439974051,"is_weekend":116.59146731973307,"lag168":91.25132886547226,"temperature_c":52.49425407466109,"is_holiday":11.863794425748583,"hod_cos":11.693874902385465,"neighbor_lagH":3.786914440300992},"peak_windows":{"lag24":4176.656311627934,"lagH":942.4529500740443,"lag168":215.53415072842276,"hod_sin":171.4625580005652,"is_weekend":111.98641834121592,"temperature_c":82.91716257632102,"is_holiday":11.492498325986164,"hod_cos":11.370395930049227,"neighbor_lagH":7.35310443381125}},"global_coefficients":{"lagH":0.31576614820591825,"lag24":0.5378779782506296,"lag168":0.14395899924432318,"hod_sin":0.053739357703309995,"hod_cos":-0.11495172486225566,"is_weekend":-0.1747042172197404,"is_holiday":-0.09748521904278495,"temperature_c":0.01569982654548775,"neighbor_lagH":-0.006324152900573908},"telangana_coefficients":{"lagH":0.1944386619139453,"lag24":0.7599681535942933,"lag168":0.04538940039620501,"hod_sin":0.12995095093811143,"hod_cos":0.008332222603735867,"is_weekend":-0.13376375470244953,"is_holiday":-0.05875317140238579,"temperature_c":0.03270354500293656,"neighbor_lagH":0.0021880197613464154}}, EX={"zone":"TG","ts":"2025-03-20 16:00","actual_mw":16756.42,"predicted_mw":16346.292787337083,"baseline_mw":9547.730013973245,"contributions_mw":{"lag24":5278.895044318341,"lagH":1233.8974821445477,"lag168":302.5721883359588,"hod_sin":-256.4402469788352,"temperature_c":150.53200504007424,"is_weekend":76.40194896176405,"neighbor_lagH":14.111613700029672,"hod_cos":-7.860741987250015,"is_holiday":6.453479829207501}}, WEEK={"ts":["2025-03-17 00:00","2025-03-17 01:00","2025-03-17 02:00","2025-03-17 03:00","2025-03-17 04:00","2025-03-17 05:00","2025-03-17 06:00","2025-03-17 07:00","2025-03-17 08:00","2025-03-17 09:00","2025-03-17 10:00","2025-03-17 11:00","2025-03-17 12:00","2025-03-17 13:00","2025-03-17 14:00","2025-03-17 15:00","2025-03-17 16:00","2025-03-17 17:00","2025-03-17 18:00","2025-03-17 19:00","2025-03-17 20:00","2025-03-17 21:00","2025-03-17 22:00","2025-03-17 23:00","2025-03-18 00:00","2025-03-18 01:00","2025-03-18 02:00","2025-03-18 03:00","2025-03-18 04:00","2025-03-18 05:00","2025-03-18 06:00","2025-03-18 07:00","2025-03-18 08:00","2025-03-18 09:00","2025-03-18 10:00","2025-03-18 11:00","2025-03-18 12:00","2025-03-18 13:00","2025-03-18 14:00","2025-03-18 15:00","2025-03-18 16:00","2025-03-18 17:00","2025-03-18 18:00","2025-03-18 19:00","2025-03-18 20:00","2025-03-18 21:00","2025-03-18 22:00","2025-03-18 23:00","2025-03-19 00:00","2025-03-19 01:00","2025-03-19 02:00","2025-03-19 03:00","2025-03-19 04:00","2025-03-19 05:00","2025-03-19 06:00","2025-03-19 07:00","2025-03-19 08:00","2025-03-19 09:00","2025-03-19 10:00","2025-03-19 11:00","2025-03-19 12:00","2025-03-19 13:00","2025-03-19 14:00","2025-03-19 15:00","2025-03-19 16:00","2025-03-19 17:00","2025-03-19 18:00","2025-03-19 19:00","2025-03-19 20:00","2025-03-19 21:00","2025-03-19 22:00","2025-03-19 23:00","2025-03-20 00:00","2025-03-20 01:00","2025-03-20 02:00","2025-03-20 03:00","2025-03-20 04:00","2025-03-20 05:00","2025-03-20 06:00","2025-03-20 07:00","2025-03-20 08:00","2025-03-20 09:00","2025-03-20 10:00","2025-03-20 11:00","2025-03-20 12:00","2025-03-20 13:00","2025-03-20 14:00","2025-03-20 15:00","2025-03-20 16:00","2025-03-20 17:00","2025-03-20 18:00","2025-03-20 19:00","2025-03-20 20:00","2025-03-20 21:00","2025-03-20 22:00","2025-03-20 23:00","2025-03-21 00:00","2025-03-21 01:00","2025-03-21 02:00","2025-03-21 03:00","2025-03-21 04:00","2025-03-21 05:00","2025-03-21 06:00","2025-03-21 07:00","2025-03-21 08:00","2025-03-21 09:00","2025-03-21 10:00","2025-03-21 11:00","2025-03-21 12:00","2025-03-21 13:00","2025-03-21 14:00","2025-03-21 15:00","2025-03-21 16:00","2025-03-21 17:00","2025-03-21 18:00","2025-03-21 19:00","2025-03-21 20:00","2025-03-21 21:00","2025-03-21 22:00","2025-03-21 23:00","2025-03-22 00:00","2025-03-22 01:00","2025-03-22 02:00","2025-03-22 03:00","2025-03-22 04:00","2025-03-22 05:00","2025-03-22 06:00","2025-03-22 07:00","2025-03-22 08:00","2025-03-22 09:00","2025-03-22 10:00","2025-03-22 11:00","2025-03-22 12:00","2025-03-22 13:00","2025-03-22 14:00","2025-03-22 15:00","2025-03-22 16:00","2025-03-22 17:00","2025-03-22 18:00","2025-03-22 19:00","2025-03-22 20:00","2025-03-22 21:00","2025-03-22 22:00","2025-03-22 23:00","2025-03-23 00:00","2025-03-23 01:00","2025-03-23 02:00","2025-03-23 03:00","2025-03-23 04:00","2025-03-23 05:00","2025-03-23 06:00","2025-03-23 07:00","2025-03-23 08:00","2025-03-23 09:00","2025-03-23 10:00","2025-03-23 11:00","2025-03-23 12:00","2025-03-23 13:00","2025-03-23 14:00","2025-03-23 15:00","2025-03-23 16:00","2025-03-23 17:00","2025-03-23 18:00","2025-03-23 19:00","2025-03-23 20:00","2025-03-23 21:00","2025-03-23 22:00","2025-03-23 23:00"],"actual":[11206.3,13549.0,14060.2,13888.5,13929.1,14229.4,14961.6,15874.7,16033.9,15853.9,15897.7,16016.0,15980.2,15953.4,15866.0,16243.8,16358.9,15494.2,10625.4,9963.6,9715.2,9574.7,10009.2,10191.9,11772.8,14335.4,14504.7,14393.3,14357.9,14508.2,15098.5,16162.2,16112.5,16101.4,16210.2,16365.7,16374.5,16238.1,16099.8,16402.9,16688.9,15891.1,10885.2,10261.3,10019.4,9876.1,10268.1,10503.1,12094.8,14529.8,14842.7,14605.8,14573.2,14664.2,15055.2,16054.2,16058.8,16235.4,16229.3,16115.8,15945.6,15804.1,15864.4,16188.1,16482.4,15723.5,10750.8,10080.0,9885.1,9711.5,10113.2,10327.0,11604.4,13820.6,14336.2,14195.1,14199.6,14326.7,15072.9,16171.8,16134.6,15938.4,16005.8,16046.3,15931.6,15884.0,15876.0,16155.8,16756.4,16149.6,10894.5,10242.3,9880.4,9868.9,10310.5,10502.3,11912.5,13930.3,14256.2,14157.4,14161.3,14135.2,14719.8,16013.7,16013.2,16088.1,16151.8,15987.8,16005.8,15926.0,15786.0,16035.7,15984.0,14563.9,10425.5,9670.4,9489.5,9274.6,9589.2,9359.4,9641.4,10644.1,11172.2,11370.6,11516.9,11679.0,12346.5,13623.6,13818.8,14016.1,14186.4,14274.1,14377.6,14425.2,14543.9,14696.0,14807.4,14098.2,10093.4,9645.9,9440.7,9163.5,9570.0,9801.6,10558.8,12244.2,12655.3,12573.9,12607.6,12564.6,12993.4,13888.7,14178.0,14142.5,14199.4,14064.9,14119.6,14109.4,14076.5,14266.4,14073.9,13029.4,9448.2,9278.7,9175.5,9117.6,9538.0,9681.5],"fed_graph":[10273.8,12044.7,12527.3,12960.9,13766.7,14135.8,14516.9,15291.6,15665.5,15853.3,16194.6,16125.5,16012.9,15885.4,15774.4,15919.6,16029.5,15370.5,11974.3,11493.9,11069.6,9412.3,9547.0,9641.3,10508.9,12224.6,12663.0,13160.6,14065.4,14366.3,14740.0,15694.6,15942.4,16028.8,16393.9,16468.4,16390.5,16326.7,16258.1,16440.1,16402.4,15724.5,12410.3,12005.7,11517.8,9799.0,9843.8,9887.2,10900.3,12754.2,13038.6,13544.7,14351.5,14632.3,15047.7,15911.7,16005.9,16112.3,16522.4,16623.8,16626.2,16483.5,16300.2,16390.3,16464.9,15851.4,12520.5,12097.9,11650.4,9930.6,9929.5,10015.5,10998.8,12820.3,13168.8,13497.9,14254.7,14558.4,14899.6,15722.1,15852.3,16192.3,16574.2,16518.5,16316.2,16210.3,16215.9,16287.9,16405.8,15827.8,12431.6,12090.7,11709.9,9889.5,9936.2,9939.9,10835.8,12548.0,12986.8,13401.9,14108.9,14389.2,14884.2,15653.1,15733.4,15857.4,16355.7,16386.9,16308.9,16246.0,16102.7,16173.6,16425.8,15892.6,12336.1,11794.1,11074.4,9694.8,9737.2,9819.0,10357.4,11893.5,12116.9,12200.9,12585.6,12855.1,13403.8,14398.8,14530.9,14833.6,15292.2,15277.2,15302.2,15263.3,15160.1,15286.2,15176.6,14274.1,11329.1,10804.6,10424.5,8994.1,9066.7,8930.5,9175.8,10220.7,10704.3,11096.7,11772.3,12093.6,12558.5,13437.8,13633.8,13903.9,14327.3,14440.2,14455.0,14434.2,14378.7,14455.7,14476.9,13897.7,10970.7,10517.9,10012.4,8689.3,8925.9,9059.4],"fed_local":[10310.2,12088.4,12572.3,12990.0,13781.9,14140.8,14517.1,15289.2,15666.4,15855.4,16196.8,16129.0,16028.1,15907.4,15798.4,15947.5,16060.4,15400.6,11992.4,11509.8,11082.3,9439.6,9580.0,9677.3,10549.6,12272.3,12710.8,13192.2,14081.4,14374.7,14745.2,15696.8,15946.7,16032.5,16397.6,16475.0,16406.8,16348.2,16280.3,16466.2,16430.7,15751.2,12429.3,12021.7,11531.9,9827.1,9875.7,9922.1,10940.3,12801.3,13083.7,13575.8,14368.4,14638.7,15049.0,15912.1,16008.2,16115.2,16524.1,16629.8,16642.4,16504.8,16323.2,16417.1,16493.5,15879.3,12538.5,12113.1,11664.2,9957.5,9958.6,10046.8,11035.3,12862.9,13210.7,13525.6,14269.3,14561.5,14898.4,15719.8,15852.0,16191.0,16572.1,16517.8,16328.2,16228.1,16234.9,16312.6,16432.1,15853.7,12448.0,12103.0,11719.2,9914.9,9964.1,9969.1,10868.2,12587.1,13025.5,13425.9,14120.4,14391.2,14882.1,15651.5,15735.1,15859.4,16356.6,16390.1,16321.2,16263.7,16125.5,16200.6,16456.3,15923.4,12357.9,11815.2,11093.4,9718.5,9766.0,9853.0,10395.2,11937.9,12162.5,12237.7,12615.0,12873.1,13413.5,14408.2,14541.3,14843.5,15299.8,15285.7,15320.9,15286.2,15182.0,15306.5,15189.3,14286.4,11335.6,10806.7,10421.7,9003.1,9081.1,8947.4,9194.9,10241.4,10725.7,11108.7,11773.2,12086.0,12547.8,13427.9,13626.4,13896.1,14317.7,14431.3,14452.8,14436.5,14382.7,14462.7,14487.1,13909.9,10971.4,10520.1,10015.9,8703.8,8944.0,9081.2],"fed_graph_ft":[10910.0,12991.4,13532.2,13733.6,14209.6,14499.5,14822.2,15523.7,15840.6,15877.7,16110.2,15934.2,15825.1,15664.6,15505.5,15693.7,15857.9,15152.3,11076.4,10581.6,10303.8,9300.5,9700.6,9931.6,11040.4,13055.7,13553.4,13783.6,14350.3,14635.0,15154.1,15964.0,16131.9,16083.6,16295.2,16340.2,16247.3,16171.3,16064.9,16307.4,16322.9,15568.2,11678.6,11205.4,10860.5,9801.5,10062.9,10217.3,11510.3,13694.5,13948.9,14223.2,14703.8,14901.4,15331.7,16200.9,16190.3,16226.4,16485.9,16572.2,16553.2,16376.6,16180.7,16334.0,16485.8,15815.5,11842.2,11385.1,11061.0,9993.1,10197.1,10397.5,11683.1,13782.6,14136.7,14246.8,14689.1,14879.5,15192.4,16016.3,16050.1,16304.0,16497.2,16373.4,16152.2,15999.2,15995.8,16165.6,16346.3,15701.3,11718.9,11291.6,11030.0,9900.0,10138.1,10269.6,11360.1,13303.2,13804.1,14009.1,14439.5,14626.6,15192.3,16060.7,16049.9,16007.9,16297.5,16288.7,16157.5,16070.2,15969.1,16124.6,16524.5,15974.2,11776.2,11238.3,10679.3,9839.9,10102.6,10300.0,11169.9,12929.3,13215.4,13236.6,13468.8,13581.0,14088.1,15152.8,15187.0,15363.5,15633.4,15509.2,15503.6,15413.5,15256.4,15385.0,15242.8,14145.6,10795.8,10209.4,9947.5,9037.3,9271.3,9137.1,9415.3,10433.7,10965.8,11307.5,11780.9,12012.9,12534.8,13545.9,13700.0,13913.4,14195.6,14261.4,14268.1,14237.9,14227.7,14313.2,14363.0,13755.6,10456.9,10057.6,9715.5,8841.2,9198.7,9431.7]}, DQ={"rows":170784,"range":["2023-01-01 00:00:00","2026-03-31 23:00:00"],"weather":true,"per_zone":{"AP":{"hours":28464,"copied_days_removed":94,"copied_months":["2023-02","2023-03","2023-10","2024-04","2026-03"],"mean_mw":9055.5,"min_mw":3204.2,"max_mw":13652.0,"holiday_days":58},"KA":{"hours":28464,"copied_days_removed":61,"copied_months":["2024-04","2026-03"],"mean_mw":10618.0,"min_mw":4749.1,"max_mw":18317.4,"holiday_days":72},"KL":{"hours":28464,"copied_days_removed":61,"copied_months":["2024-04","2026-03"],"mean_mw":3444.0,"min_mw":1672.6,"max_mw":5762.0,"holiday_days":88},"PY":{"hours":28464,"copied_days_removed":75,"copied_months":["2023-01","2023-07","2024-04","2026-03"],"mean_mw":372.1,"min_mw":53.0,"max_mw":543.7,"holiday_days":88},"TG":{"hours":28464,"copied_days_removed":61,"copied_months":["2024-04","2026-03"],"mean_mw":9995.8,"min_mw":3922.1,"max_mw":16756.4,"holiday_days":58},"TN":{"hours":28464,"copied_days_removed":61,"copied_months":["2024-04","2026-03"],"mean_mw":14707.2,"min_mw":7178.7,"max_mw":20393.0,"holiday_days":79}}};
+(function(){
+  var NAMES={TG:"Telangana",AP:"Andhra Pradesh",KA:"Karnataka",TN:"Tamil Nadu",KL:"Kerala",PY:"Puducherry"};
+  var ORDER=["TG","AP","KA","TN","KL","PY"];
+  function fmt(n,d){return n.toLocaleString("en-IN",{minimumFractionDigits:d,maximumFractionDigits:d});}
+  function pct(a,b){return (b-a)/a*100;}
+  function fmtPct(p){return (p>0?"+":p<0?"−":"")+Math.abs(p).toFixed(Math.abs(p)<1?2:1)+"%";}
+
+  /* data table */
+  document.getElementById("dataRows").innerHTML=ORDER.map(function(z){var q=DQ.per_zone[z];
+    return "<tr"+(z==="TG"?' class="ours"':"")+"><td>"+NAMES[z]+'</td><td class="n">'+fmt(q.mean_mw,0)+'</td><td class="n">'+fmt(q.max_mw,0)+'</td><td class="n">'+q.copied_days_removed+'</td><td class="n">'+q.holiday_days+"</td></tr>";}).join("");
+
+  /* results */
+  var MODELS=[
+    {k:"central_local",name:"Centralized, local",tag:"one pooled model",cls:""},
+    {k:"central_graph",name:"Centralized, graph-aware",tag:"one pooled model",cls:""},
+    {k:"fed_local",name:"FedAvg, local",tag:"plain federated",cls:"fed"},
+    {k:"fed_graph",name:"FedAvg, graph-aware",tag:"plain federated",cls:"fed"},
+    {k:"solo_graph",name:"Each state alone",tag:"no sharing",cls:""},
+    {k:"fed_local_ft",name:"Personalised, local",tag:"FedAvg + fine-tune",cls:"fed"},
+    {k:"fed_graph_ft",name:"Personalised, graph-aware",tag:"FedGrid",cls:"ours"}
+  ];
+  var mNames={mae:"MAE by model, MW",rmse:"RMSE by model, MW",mape:"MAPE by model, %",peak_mae:"Peak-hour MAE by model, MW"};
+  var state={m:"rmse",p:"test"};
+  function niceMax(v){var mag=Math.pow(10,Math.floor(Math.log10(v)));var st=[1,2,2.5,5,10];for(var i=0;i<st.length;i++){var s=st[i]*mag/2;var top=Math.ceil(v*1.06/s)*s;if(top/s<=6)return{top:top,step:s};}return{top:Math.ceil(v*1.06/mag)*mag,step:mag};}
+  function axis(el,top,step){el.innerHTML="";for(var t=0;t<=top+1e-9;t+=step){var s=document.createElement("span");s.style.left=(t/top*100)+"%";s.textContent=fmt(Math.round(t*100)/100,t<10&&step<1?1:0);el.appendChild(s);}}
+  function rows(container,items){container.innerHTML="";items.forEach(function(it){var lab=document.createElement("div");lab.className="lab";lab.innerHTML=it.label;var tr=document.createElement("div");tr.className="track";var f=document.createElement("div");f.className="fill "+(it.cls||"");var v=document.createElement("span");v.className="val";tr.appendChild(f);tr.appendChild(v);container.appendChild(lab);container.appendChild(tr);it.f=f;it.v=v;});}
+  var mr=MODELS.map(function(m){return{label:m.name+"<small>"+m.tag+"</small>",cls:m.cls,k:m.k};});
+  rows(document.getElementById("modelBars"),mr);
+  function get(k,p,m){return RES.models[k][p].pooled[m].mean;}
+  function draw(){
+    var m=state.m,p=state.p,dec=m==="mape"?2:1;
+    var vals=mr.map(function(r){return get(r.k,p,m);});var n=niceMax(Math.max.apply(null,vals));
+    mr.forEach(function(r,i){var w=vals[i]/n.top*100;r.f.style.width=w+"%";r.v.style.left=w+"%";r.v.textContent=fmt(vals[i],dec);});
+    axis(document.getElementById("modelAxis"),n.top,n.step);
+    document.getElementById("metricTitle").textContent=mNames[m]+(p==="extra"?", Jan–Feb 2026":", 2025");
+    function cell(lbl,a,b,desc){var d=pct(get(a,p,m),get(b,p,m));return '<div><div class="k">'+lbl+'</div><div class="v '+(d<0?"good":"bad")+'">'+fmtPct(d)+'</div><div class="d">'+desc+": "+fmt(get(a,p,m),dec)+" → "+fmt(get(b,p,m),dec)+"</div></div>";}
+    document.getElementById("deltas").innerHTML=cell("Personalisation","fed_graph","fed_graph_ft","plain → personalised")+cell("Graph feature","fed_local_ft","fed_graph_ft","personalised, local → graph")+cell("vs each state alone","solo_graph","fed_graph_ft","alone → personalised federated");
+    Array.prototype.forEach.call(document.querySelectorAll("#metricSeg button"),function(b){b.setAttribute("aria-pressed",b.dataset.k===m?"true":"false");});
+    Array.prototype.forEach.call(document.querySelectorAll("#periodSeg button"),function(b){b.setAttribute("aria-pressed",b.dataset.k===p?"true":"false");});
+  }
+  document.getElementById("metricSeg").addEventListener("click",function(e){var b=e.target.closest("button");if(b){state.m=b.dataset.k;draw();}});
+  document.getElementById("periodSeg").addEventListener("click",function(e){var b=e.target.closest("button");if(b){state.p=b.dataset.k;draw();}});
+  draw();
+  document.getElementById("resRows").innerHTML=MODELS.map(function(md){var P=RES.models[md.k].test.pooled;
+    function c(m,d){return '<td class="n">'+fmt(P[m].mean,d)+' <span style="color:var(--ink-3)">± '+fmt(P[m].std,d)+"</span></td>";}
+    return "<tr"+(md.k==="fed_graph_ft"?' class="ours"':"")+"><td>"+md.name+"</td>"+c("mae",1)+c("rmse",1)+c("mape",2)+c("peak_mae",1)+"</tr>";}).join("");
+
+  /* per-state table */
+  document.getElementById("zoneRows").innerHTML=ORDER.map(function(z){var a=RES.models.fed_graph.test.per_zone[z].rmse,b=RES.models.fed_graph_ft.test.per_zone[z].rmse,c=RES.models.solo_graph.test.per_zone[z].rmse;
+    return "<tr"+(z==="TG"?' class="ours"':"")+"><td>"+NAMES[z]+'</td><td class="n">'+fmt(a,1)+'</td><td class="n">'+fmt(b,1)+'</td><td class="n">'+fmt(c,1)+'</td><td class="n">'+fmtPct(pct(a,b))+"</td></tr>";}).join("");
+
+  /* Telangana KPIs */
+  var tgP=RES.models.fed_graph.test.per_zone.TG,tgF=RES.models.fed_graph_ft.test.per_zone.TG;
+  document.getElementById("tgKpis").innerHTML=
+    '<div><div class="k">Telangana MAPE, 2025</div><div class="v">'+fmt(tgF.mape,2)+'%</div><div class="d">personalised federated</div></div>'+
+    '<div><div class="k">RMSE vs plain FedAvg</div><div class="v" style="color:var(--model)">'+fmtPct(pct(tgP.rmse,tgF.rmse))+'</div><div class="d">'+fmt(tgP.rmse,0)+" → "+fmt(tgF.rmse,0)+' MW</div></div>'+
+    '<div><div class="k">Peak-hour MAE</div><div class="v">'+fmt(tgF.peak_mae,0)+' MW</div><div class="d">top 10% hours, was '+fmt(tgP.peak_mae,0)+"</div></div>";
+
+  /* Telangana week chart */
+  (function(){
+    var NS="http://www.w3.org/2000/svg",svg=document.getElementById("tgChart");
+    function el(t,a){var e=document.createElementNS(NS,t);for(var k in a)e.setAttribute(k,a[k]);svg.appendChild(e);return e;}
+    var W=760,H=300,L=56,R=12,T=14,B=34;
+    var all=WEEK.actual.concat(WEEK.fed_graph_ft,WEEK.fed_graph);
+    var lo=Math.floor(Math.min.apply(null,all)/1000)*1000,hi=Math.ceil(Math.max.apply(null,all)/1000)*1000;
+    var n=WEEK.actual.length;
+    function x(i){return L+(W-L-R)*i/(n-1);} function y(v){return T+(H-T-B)*(1-(v-lo)/(hi-lo));}
+    for(var v=lo;v<=hi;v+=2000){el("line",{x1:L,x2:W-R,y1:y(v),y2:y(v),class:"ax"});var t=el("text",{x:L-8,y:y(v)+4,"text-anchor":"end",class:"tk"});t.textContent=fmt(v,0);}
+    var DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    for(var i=0;i<n;i+=24){var d=new Date(WEEK.ts[i].replace(" ","T"));var t2=el("text",{x:x(i+12),y:H-12,"text-anchor":"middle",class:"tk"});t2.textContent=DOW[d.getDay()]+" "+d.getDate();if(i>0)el("line",{x1:x(i),x2:x(i),y1:T,y2:H-B,class:"ax"});}
+    function path(s,cls){el("path",{d:s.map(function(v,i){return(i?"L":"M")+x(i).toFixed(1)+","+y(v).toFixed(1);}).join(""),class:cls});}
+    path(WEEK.fed_graph,"s-fed");path(WEEK.fed_graph_ft,"s-ft");path(WEEK.actual,"s-act");
+    var im=WEEK.actual.indexOf(Math.max.apply(null,WEEK.actual));
+    el("circle",{cx:x(im),cy:y(WEEK.actual[im]),r:4,class:"pk"});
+    var lb=el("text",{x:x(im)+8,y:y(WEEK.actual[im])-6,class:"pkl"});lb.textContent=fmt(WEEK.actual[im],0)+" MW";
+  })();
+
+  /* SHAP */
+  var FD={lagH:"load 3 h earlier",lag24:"load 24 h earlier",lag168:"load one week earlier",hod_sin:"hour of day, sine",hod_cos:"hour of day, cosine",is_weekend:"weekend",is_holiday:"state holiday",temperature_c:"temperature",neighbor_lagH:"bordering states' load"};
+  var shapBars=document.getElementById("shapBars");
+  function setW(w){
+    var obj=SHAPR.telangana_personalised_mw[w];var keys=Object.keys(obj).sort(function(a,b){return obj[b]-obj[a];});
+    var mx=Math.max.apply(null,keys.map(function(k){return Math.max(SHAPR.telangana_personalised_mw.all_hours[k],SHAPR.telangana_personalised_mw.peak_windows[k]);}));
+    var nn=niceMax(mx);
+    var rs=keys.map(function(k){return{label:'<span class="mono" style="font-size:13.5px">'+k+"</span><small>"+FD[k]+"</small>",cls:k==="neighbor_lagH"?"ours":k==="temperature_c"?"surge":"fed",k:k};});
+    rows(shapBars,rs);rs.forEach(function(r){var wd=obj[r.k]/nn.top*100;r.f.style.width=wd+"%";r.v.style.left=wd+"%";r.v.textContent=fmt(obj[r.k],1);});
+    axis(document.getElementById("shapAxis"),nn.top,nn.step);
+    Array.prototype.forEach.call(document.querySelectorAll("#shapSeg button"),function(b){b.setAttribute("aria-pressed",b.dataset.k===w?"true":"false");});
+  }
+  document.getElementById("shapSeg").addEventListener("click",function(e){var b=e.target.closest("button");if(b)setW(b.dataset.k);});
+  setW("all_hours");
+  document.getElementById("nbAll").textContent=fmt(SHAPR.telangana_personalised_mw.all_hours.neighbor_lagH,1);
+  document.getElementById("nbPeak").textContent=fmt(SHAPR.telangana_personalised_mw.peak_windows.neighbor_lagH,1);
+
+  /* worked example */
+  var C=EX.contributions_mw,ks=Object.keys(C),mxc=Math.max.apply(null,ks.map(function(k){return Math.abs(C[k]);}));
+  var SM='<small style="display:block;font-family:var(--f-mono);font-size:11px;color:var(--ink-3)">';
+  function row(l,bar,v,cls){return '<div class="wfr'+(cls?" "+cls:"")+'"><div class="l">'+l+'</div><div class="bar2">'+bar+'</div><div class="v">'+v+'</div></div>';}
+  var h=row("Typical forecast"+SM+"model baseline</small>","",fmt(EX.baseline_mw,0)+" MW");
+  ks.forEach(function(k){var v=C[k],w=Math.abs(v)/mxc*100;h+=row('<span class="mono" style="font-size:13px">'+k+'</span>'+SM+FD[k]+'</small>','<i class="'+(v<0?"neg":"")+'" style="left:0;width:'+Math.max(w,.6)+'%"></i>',(v>=0?"+":"−")+fmt(Math.abs(v),0)+" MW");});
+  h+=row("Forecast","",fmt(EX.predicted_mw,0)+" MW","tot")+row("Actual","",fmt(EX.actual_mw,0)+" MW");
+  document.getElementById("wf").innerHTML=h;
+
+  /* copy BibTeX */
+  var cb=document.getElementById("copyBib");
+  cb.addEventListener("click",function(){var txt=document.getElementById("bibText").textContent;function sel(){var r=document.createRange();r.selectNodeContents(document.getElementById("bibText"));var s=window.getSelection();s.removeAllRanges();s.addRange(r);cb.textContent="Selected, press Ctrl+C";}
+    try{navigator.clipboard.writeText(txt).then(function(){cb.textContent="Copied";setTimeout(function(){cb.textContent="Copy BibTeX";},1800);},sel);}catch(e){sel();}});
+
+  /* grid diagram: real states, real borders (layout approximates the map) */
+  var NSs="http://www.w3.org/2000/svg",g=document.getElementById("grid");
+  function e2(t,a,p){var e=document.createElementNS(NSs,t);for(var k in a)e.setAttribute(k,a[k]);(p||g).appendChild(e);return e;}
+  var P={TG:[220,100],AP:[330,190],KA:[110,205],TN:[250,325],KL:[120,365],PY:[360,345]};
+  var LBL={TG:[0,-40,"middle"],AP:[32,4,"start"],KA:[-32,4,"end"],TN:[0,44,"middle"],KL:[0,44,"middle"],PY:[32,4,"start"]};
+  var SRV=[405,62];
+  var E=[["TG","AP"],["TG","KA"],["AP","KA"],["AP","TN"],["KA","TN"],["KA","KL"],["TN","KL"],["TN","PY"]];
+  var nb={};ORDER.forEach(function(z){nb[z]=[];});E.forEach(function(e){nb[e[0]].push(e[1]);nb[e[1]].push(e[0]);});
+  var gSp=e2("g",{}),gEd=e2("g",{}),gHalo=e2("g",{}),gPk=e2("g",{}),gNd=e2("g",{});
+  ORDER.forEach(function(z){e2("line",{x1:P[z][0],y1:P[z][1],x2:SRV[0],y2:SRV[1],class:"spoke"},gSp);});
+  E.forEach(function(e){e2("line",{x1:P[e[0]][0],y1:P[e[0]][1],x2:P[e[1]][0],y2:P[e[1]][1],class:"edge"},gEd);});
+  var halos={},rings={};
+  ORDER.forEach(function(z){var p=P[z];
+    halos[z]=e2("circle",{cx:p[0],cy:p[1],r:28,class:"halo",opacity:0},gHalo);
+    e2("circle",{cx:p[0],cy:p[1],r:25,class:"node"},gNd);
+    rings[z]=e2("circle",{cx:p[0],cy:p[1],r:20,class:"ring"},gNd);
+    var t=e2("text",{x:p[0],y:p[1]+4.5,"text-anchor":"middle",class:"nlabel"},gNd);t.textContent=z;
+    var lb=LBL[z];var tt=e2("text",{x:p[0]+lb[0],y:p[1]+lb[1],"text-anchor":lb[2],class:"ntype"},gNd);tt.textContent=NAMES[z].toUpperCase();
+  });
+  e2("rect",{x:SRV[0]-46,y:SRV[1]-24,width:92,height:48,rx:5,class:"agg"},gNd);
+  var at=e2("text",{x:SRV[0],y:SRV[1]-2,"text-anchor":"middle",class:"aggt"},gNd);at.textContent="Σ FedAvg";
+  var as=e2("text",{x:SRV[0],y:SRV[1]+14,"text-anchor":"middle",class:"aggs"},gNd);as.textContent="server";
+  var aggRect=gNd.querySelector("rect");
+  var pk={};ORDER.forEach(function(z){pk[z]=e2("circle",{r:4.5,class:"pkt",opacity:0},gPk);});
+  var roundLabel=document.getElementById("roundLabel");
+  var DQm={};ORDER.forEach(function(z){DQm[z]=DQ.per_zone[z].mean_mw/DQ.per_zone[z].max_mw;});
+  var ph={TG:0,AP:1.3,KA:2.1,TN:3.4,KL:4.2,PY:5.0};
+  function setRing(z,l){var c=2*Math.PI*20;rings[z].setAttribute("stroke-dasharray",(c*l).toFixed(1)+" "+c.toFixed(1));rings[z].setAttribute("transform","rotate(-90 "+P[z][0]+" "+P[z][1]+")");}
+  function load(z,t){return Math.max(.2,Math.min(.97,DQm[z]+.2*Math.sin(t*.0009+ph[z])+.06*Math.sin(t*.0031+ph[z]*2)));}
+  ORDER.forEach(function(z){setRing(z,load(z,0));});
+  var reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if(reduce){roundLabel.textContent="Round 40 / 40";return;}
+  var ROUND=3400,t0=null,surge=null,last=0;
+  function ease(x){return x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;}
+  function frame(ts){
+    if(t0===null)t0=ts;var t=ts-t0,r=Math.floor(t/ROUND),p=(t%ROUND)/ROUND,round=(r%40)+1;
+    if(round!==last){last=round;roundLabel.textContent="Round "+(round<10?"0":"")+round+" / 40";if(round%5===2){surge={o:ORDER[Math.floor(Math.random()*6)],t:t};}}
+    ORDER.forEach(function(z){setRing(z,load(z,t));var c=pk[z],q,on=true,a=P[z];
+      if(p<.35){q=ease(p/.35);c.setAttribute("cx",a[0]+(SRV[0]-a[0])*q*.9);c.setAttribute("cy",a[1]+(SRV[1]-a[1])*q*.9);}
+      else if(p>=.5&&p<.85){q=ease((p-.5)/.35);c.setAttribute("cx",SRV[0]+(a[0]-SRV[0])*(.1+q*.78));c.setAttribute("cy",SRV[1]+(a[1]-SRV[1])*(.1+q*.78));}
+      else on=false;c.setAttribute("opacity",on?1:0);halos[z].setAttribute("opacity",0);});
+    aggRect.style.strokeWidth=(p>=.33&&p<.52)?"3":"1.6";
+    if(surge){var dt=t-surge.t;
+      function bump(z,delay,amp){var xx=(dt-delay)/1400;if(xx>0&&xx<1){var v=Math.sin(xx*Math.PI)*amp;if(v>+halos[z].getAttribute("opacity")){halos[z].setAttribute("opacity",v.toFixed(3));halos[z].setAttribute("r",(28+xx*14).toFixed(1));}}}
+      bump(surge.o,0,.42);nb[surge.o].forEach(function(n){bump(n,650,.26);});if(dt>2400)surge=null;}
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>

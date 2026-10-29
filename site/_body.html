@@ -1,0 +1,519 @@
+<style>
+.lc svg{display:block;width:100%;height:auto}
+.lc .ax{stroke:var(--rule);stroke-width:1}
+.lc .tk{fill:var(--ink-3);font-family:var(--f-mono);font-size:11px}
+.lc .s-act{fill:none;stroke:var(--ink);stroke-width:2}
+.lc .s-ft{fill:none;stroke:var(--model);stroke-width:2}
+.lc .s-fed{fill:none;stroke:var(--load);stroke-width:1.6;stroke-dasharray:5 4}
+.lc .pk{fill:var(--ink)}
+.lc .pkl{fill:var(--ink);font-family:var(--f-mono);font-size:11px;font-weight:600}
+.lkey{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--f-mono);font-size:11.5px;color:var(--ink-2);margin-top:10px}
+.lkey span{display:inline-flex;align-items:center;gap:7px}
+.lkey i{width:20px;height:0;border-top:2px solid}
+.wf{display:grid;gap:8px;font-size:15px}
+.wfr{display:grid;grid-template-columns:minmax(120px,190px) minmax(0,1fr) 92px;grid-template-areas:"l b v";gap:4px 14px;align-items:center}
+.wfr>.l{grid-area:l;min-width:0}.wfr>.bar2{grid-area:b}.wfr>.v{grid-area:v}
+.wf .bar2{height:14px;position:relative;min-width:0}
+.wf .bar2 i{position:absolute;top:0;bottom:0;background:var(--model);border-radius:2px}
+.wf .bar2 i.neg{background:var(--load)}
+.wf .v{font-family:var(--f-mono);font-size:13px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.wfr.tot{font-weight:600;border-top:1px solid var(--rule);padding-top:8px}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border:1px solid var(--rule);border-radius:6px;background:var(--surface);margin:22px 0}
+.kpis>div{padding:16px 18px;border-left:1px solid var(--rule);min-width:0}
+.kpis>div:first-child{border-left:0}
+.kpis .k{font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.kpis .v{font-family:var(--f-display);font-stretch:105%;font-weight:700;font-size:26px;line-height:1.2;font-variant-numeric:tabular-nums}
+.kpis .d{font-size:14px;color:var(--ink-2)}
+.findings{display:grid;gap:12px;margin:22px 0 8px;max-width:var(--measure)}
+.findings div{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:baseline}
+.findings b.n{font-family:var(--f-mono);font-size:13px;color:var(--model)}
+.findings p{margin:0}
+@media (max-width:720px){.kpis{grid-template-columns:minmax(0,1fr)}.kpis>div{border-left:0;border-top:1px solid var(--rule)}.kpis>div:first-child{border-top:0}.wfr{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"l v" "b b"}.lcs svg{min-width:620px}.bib pre{padding-top:48px}}
+</style>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="brand" href="#top">Fed<b>Grid</b></a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#gap">The gap</a>
+      <a href="#data">Data</a>
+      <a href="#method">Method</a>
+      <a href="#results">Results</a>
+      <a href="#telangana">Telangana</a>
+      <a href="#explain">Explainability</a>
+      <a href="#roadmap">Roadmap</a>
+      <a href="#cite">Cite</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <h1 class="paper-title" style="font-size:clamp(28px,3.4vw,42px);font-weight:700">An Explainable Federated Graph Neural Network Framework for Privacy-Preserving Short-Term Electricity Load Forecasting in Smart Grids</h1>
+      <p class="thesis">Six southern Indian states train one load forecaster together without sharing their demand records, and every forecast comes back with the features that drove it.</p>
+      <div class="status"><i></i>Real Grid-India hourly demand, Jan 2023 – Feb 2026 · manuscript prepared for IJERESM</div>
+    </div>
+
+    <figure class="diagram" style="margin:0">
+      <div class="diagram-head"><span>Southern Region · FedAvg</span><span class="num" id="roundLabel">Round 01 / 40</span></div>
+      <svg id="grid" viewBox="0 0 480 440" role="img" aria-labelledby="gridTitle gridDesc">
+        <title id="gridTitle">Six Southern Region states joined by their eight shared borders, with a FedAvg server</title>
+        <desc id="gridDesc">Telangana, Andhra Pradesh, Karnataka, Tamil Nadu, Kerala and Puducherry each keep their demand data. Only model parameters travel to the server, which averages them and sends the global model back.</desc>
+      </svg>
+      <div class="legend">
+        <span><i class="sw edge"></i>Shared state border (8)</span>
+        <span><i class="sw up"></i>Model update path</span>
+        <span><i class="dot l"></i>Demand data, stays in state</span>
+        <span><i class="dot m"></i>Weights in transit</span>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<dl class="spec" aria-label="Experiment at a glance">
+  <div class="wrap">
+    <div class="hl"><dt>Error cut</dt><dd class="num">−10.5% RMSE<small>personalised vs plain FedAvg</small></dd></div>
+    <div><dt>Clients</dt><dd class="num">6 states<small>8 shared borders</small></dd></div>
+    <div><dt>History</dt><dd class="num">26,000+ h<small>per state, hourly</small></dd></div>
+    <div><dt>Horizon</dt><dd class="num">3 h ahead<small>short-term forecast</small></dd></div>
+    <div><dt>Federation</dt><dd class="num">40 × 5<small>rounds × local epochs</small></dd></div>
+    <div><dt>Test year</dt><dd class="num">2025<small>8,760 h per state</small></dd></div>
+  </div>
+</dl>
+
+<section class="s" id="gap">
+  <div class="wrap">
+    <div class="rail"><b>01</b>Introduction &amp; related work</div>
+    <div class="body">
+      <h2>Three properties no single pipeline had combined</h2>
+      <p class="lede">Grid operators schedule generation, plan maintenance, and ride out demand spikes on short-term load forecasts. The data that would train the best models is split across state utilities and load dispatch centres that do not pool raw consumption records.</p>
+      <p>Federated learning removes the need to centralize data by exchanging only model updates. But most federated load forecasting treats each client as independent and ignores a well-established fact: load in one region correlates with load in electrically or geographically adjacent regions. Where federated models do add that spatial structure through graph neural networks, they rarely explain individual forecasts, which limits how far an operator can trust them.</p>
+
+      <div class="props">
+        <div><span class="k">i · Federated</span><h3>Raw data stays in the state</h3><p>Only model parameters leave a state. Demand records never do.</p></div>
+        <div><span class="k">ii · Graph-aware</span><h3>Neighbours inform the forecast</h3><p>The model sees recent load in bordering states.</p></div>
+        <div><span class="k">iii · Explainable</span><h3>Every forecast has reasons</h3><p>Each prediction carries a feature attribution an operator can act on.</p></div>
+      </div>
+
+      <div class="tscroll">
+        <table>
+          <thead><tr><th>Line of prior work</th><th class="mk">Federated</th><th class="mk">Graph-aware</th><th class="mk">Explains forecasts</th><th>Examples</th></tr></thead>
+          <tbody>
+            <tr><td>Federated per-client sequence models (LSTM/GRU)</td><td class="mk y">●</td><td class="mk n">○</td><td class="mk n">○</td><td class="mono" style="font-size:13px">[1] [2] [9]</td></tr>
+            <tr><td>Federated graph neural networks</td><td class="mk y">●</td><td class="mk y">●</td><td class="mk n">○</td><td class="mono" style="font-size:13px">[10] [11]</td></tr>
+            <tr><td>Federated attention model with SHAP</td><td class="mk y">●</td><td class="mk n">○</td><td class="mk y">●</td><td class="mono" style="font-size:13px">[4]</td></tr>
+            <tr class="ours"><td>FedGrid (this work)</td><td class="mk y">●</td><td class="mk y">●</td><td class="mk y">●</td><td class="mono" style="font-size:13px">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="caption">Summarised from the paper's review: federated-plus-GNN work mostly stops at accuracy comparison, and federated-plus-XAI work mostly uses non-graph architectures.</p>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="problem">
+  <div class="wrap">
+    <div class="rail"><b>03</b>Problem statement</div>
+    <div class="body">
+      <h2>Forecast every state without pooling their data</h2>
+      <div class="formal">
+        <p>Given grid zones <span class="math">Z = {z₁, …, zₙ}</span> connected by an adjacency graph <span class="math">G = (Z, E)</span>, where each zone holds a private time series of load, weather, and calendar features,</p>
+        <p>learn a spatio-temporal forecasting model <span class="math">f<sub>θ</sub></span> across all zones, with no zone sharing raw consumption records, such that:</p>
+      </div>
+      <div class="goals">
+        <div class="goal"><span class="k">(a) Accuracy</span><p><span class="math">f<sub>θ</sub></span> beats an equivalent federated model with no graph structure, especially in peak-demand hours.</p></div>
+        <div class="goal"><span class="k">(b) Attribution</span><p>Every forecast returns the input features and neighbouring zones that most influenced it.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="data">
+  <div class="wrap">
+    <div class="rail"><b>04</b>Data</div>
+    <div class="body">
+      <h2>Hourly demand from India's grid operator</h2>
+      <p>Each client is one Southern Region state. The load series is hourly <em>demand met</em> published by Grid-India and downloaded from NITI Aayog's India Climate &amp; Energy Dashboard. The graph links states that share a land border: Telangana–Andhra Pradesh, Telangana–Karnataka, Andhra Pradesh–Karnataka, Andhra Pradesh–Tamil Nadu, Karnataka–Tamil Nadu, Karnataka–Kerala, Tamil Nadu–Kerala and Tamil Nadu–Puducherry.</p>
+      <div class="tscroll">
+        <table>
+          <thead><tr><th>State</th><th class="n">Mean demand (MW)</th><th class="n">Highest hour (MW)</th><th class="n">Copied days removed</th><th class="n">Public holidays</th></tr></thead>
+          <tbody id="dataRows"></tbody>
+        </table>
+      </div>
+      <p class="caption">Jan 2023 – Mar 2026. Values are hourly demand met, not unconstrained demand.</p>
+      <p class="note">The source repeats some blocks of data exactly: April 2024 is a copy of March 2024 in every state, and March 2026 is a copy of January 2026. Any day whose 24 hourly values match an earlier day was removed, 413 days in total. Weather is hourly temperature from Open-Meteo's historical archive at each state's main load centre (Hyderabad, Vijayawada, Bengaluru, Chennai, Kochi, Puducherry). Holidays come from each state's public-holiday calendar.</p>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="method">
+  <div class="wrap">
+    <div class="rail"><b>05</b>Method</div>
+    <div class="body">
+      <h2>A three-layer pipeline</h2>
+      <div class="pipe">
+        <div class="layer"><span class="file">data_prep.py</span><h3>Data layer</h3>
+          <ul><li>Merges the ICED exports per state</li><li>Removes copied days</li><li>Adds state holidays and hourly temperature</li></ul></div>
+        <div class="layer"><span class="file">train.py</span><h3>Model layer</h3>
+          <ul><li>Linear clients (<span class="mono" style="font-size:14px">SGDRegressor</span>); each state scales its own load</li><li>One-hop neighbour feature from bordering states</li><li>Sample-weighted FedAvg, 40 rounds × 5 epochs, then 5 local fine-tuning epochs</li></ul></div>
+        <div class="layer"><span class="file">explain.py</span><h3>Explanation layer</h3>
+          <ul><li>SHAP <span class="mono" style="font-size:14px">LinearExplainer</span></li><li>Attributions in MW for each forecast, including the neighbour feature</li></ul></div>
+      </div>
+      <div class="outputs">Outputs <code>results.json</code><code>shap_results.json</code><code>example_explanation.json</code></div>
+
+      <div class="setup">
+        <div><span>Clients / edges</span><span>6 states / 8 borders</span></div>
+        <div><span>Forecast horizon</span><span>3 h ahead</span></div>
+        <div><span>Training period</span><span>2023 – 2024</span></div>
+        <div><span>Test period</span><span>2025 (8,760 h)</span></div>
+        <div><span>Recent check</span><span>Jan – Feb 2026</span></div>
+        <div><span>Random seeds</span><span>5</span></div>
+        <div><span>Metrics</span><span>MAE · RMSE · MAPE</span></div>
+        <div><span>Peak metric</span><span>MAE, top 10% hours</span></div>
+      </div>
+      <p class="note" style="margin-top:18px">Features: load 3, 24 and 168 hours before the target hour, hour of day, weekend, state holiday, temperature, and the mean recent load of bordering states (<span class="mono" style="font-size:14px">neighbor_lagH</span>). Temperature is the observed value, standing in for a weather forecast. Stack: Python, NumPy, pandas, scikit-learn, SHAP. The linear clients stand in for the proposed graph neural network.</p>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="results">
+  <div class="wrap">
+    <div class="rail"><b>06</b>Results</div>
+    <div class="body">
+      <h2>Personalisation matters more than the graph feature</h2>
+      <p>One shared model has to fit states as different as Tamil Nadu and Puducherry. Letting each state fine-tune the federated model on its own data closes most of that gap. The neighbour feature then adds a small gain, mostly in peak hours.</p>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3 id="metricTitle">RMSE by model, MW</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:10px">
+            <div class="seg" role="group" aria-label="Metric" id="metricSeg">
+              <button type="button" id="m-mae" data-k="mae" aria-pressed="false">MAE</button>
+              <button type="button" id="m-rmse" data-k="rmse" aria-pressed="true">RMSE</button>
+              <button type="button" id="m-mape" data-k="mape" aria-pressed="false">MAPE %</button>
+              <button type="button" id="m-peak" data-k="peak_mae" aria-pressed="false">Peak MAE</button>
+            </div>
+            <div class="seg" role="group" aria-label="Period" id="periodSeg">
+              <button type="button" id="p-test" data-k="test" aria-pressed="true">2025</button>
+              <button type="button" id="p-extra" data-k="extra" aria-pressed="false">Jan–Feb 2026</button>
+            </div>
+          </div>
+        </div>
+        <div class="hbar" id="modelBars"></div>
+        <div class="hbar" aria-hidden="true"><div></div><div class="axis" id="modelAxis"></div></div>
+        <div class="deltas" id="deltas"></div>
+      </div>
+
+      <div class="tscroll">
+        <table>
+          <thead><tr><th>Model</th><th class="n">MAE (MW)</th><th class="n">RMSE (MW)</th><th class="n">MAPE (%)</th><th class="n">Peak MAE (MW)</th></tr></thead>
+          <tbody id="resRows"></tbody>
+        </table>
+      </div>
+      <p class="caption">Table 1. All six states pooled, 2025 test year, mean ± standard deviation over 5 seeds. Lower is better.</p>
+
+      <div class="findings">
+        <div><b class="n">1</b><p><strong>Plain FedAvg underfits.</strong> A single global linear model is worse than training each state alone, because the states' load patterns differ. Pooling all data into one centralized model has the same problem, so it is not an upper bound here.</p></div>
+        <div><b class="n">2</b><p><strong>Personalised federation works.</strong> Five local fine-tuning epochs cut RMSE by about 10% against plain FedAvg and match or beat each state training alone, with lower peak-hour error.</p></div>
+        <div><b class="n">3</b><p><strong>The neighbour feature helps a little.</strong> With personalisation it lowers peak-hour MAE by under 1% and RMSE by about 0.2%. Without personalisation it gives no gain. This is far smaller than the 1.8% the simulated data suggested.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="telangana">
+  <div class="wrap">
+    <div class="rail"><b>06</b>Telangana</div>
+    <div class="body">
+      <h2>Telangana's peak week, 17–23 March 2025</h2>
+      <p>Telangana's highest hour in 2025 came at 4 pm on 20 March, when demand met reached 16,756 MW. The chart shows the week around it, with forecasts made 3 hours ahead.</p>
+      <div class="kpis" id="tgKpis"></div>
+      <div class="panel lc">
+        <div class="panel-head"><h3>Hourly demand met, MW</h3></div>
+        <div class="lcs" style="overflow-x:auto"><svg id="tgChart" viewBox="0 0 760 300" role="img" aria-label="Telangana hourly demand and forecasts, 17 to 23 March 2025"></svg></div>
+        <div class="lkey"><span><i style="border-color:var(--ink)"></i>Actual</span><span><i style="border-color:var(--model)"></i>Personalised federated, graph-aware</span><span><i style="border-top:2px dashed var(--load)"></i>Plain FedAvg, graph-aware</span></div>
+      </div>
+      <div class="tscroll">
+        <table>
+          <thead><tr><th>State</th><th class="n">Plain FedAvg</th><th class="n">Personalised federated</th><th class="n">State alone</th><th class="n">Change vs plain</th></tr></thead>
+          <tbody id="zoneRows"></tbody>
+        </table>
+      </div>
+      <p class="caption">RMSE in MW per state, 2025, graph-aware models, mean of 5 seeds.</p>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="explain">
+  <div class="wrap">
+    <div class="rail"><b>07</b>Explainability</div>
+    <div class="body">
+      <h2>What drives Telangana's forecasts</h2>
+      <p>SHAP attributions for Telangana's personalised model, in MW. Yesterday's load at the same hour dominates, followed by the latest reading 3 hours earlier. In peak hours both matter more, and temperature rises in importance.</p>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Mean |SHAP| by feature, MW</h3>
+          <div class="seg" role="group" aria-label="Window" id="shapSeg">
+            <button type="button" id="w-all" data-k="all_hours" aria-pressed="true">All hours</button>
+            <button type="button" id="w-peak" data-k="peak_windows" aria-pressed="false">Peak hours</button>
+          </div>
+        </div>
+        <div class="hbar" id="shapBars"></div>
+        <div class="hbar" aria-hidden="true"><div></div><div class="axis" id="shapAxis"></div></div>
+        <div class="feat-key"><span><i style="background:var(--model)"></i>Graph feature</span><span><i style="background:var(--load)"></i>Weather</span><span><i style="background:var(--bar-2)"></i>Local features</span></div>
+      </div>
+      <p class="caption">Table 2. Mean absolute SHAP values, Telangana, 2025. Peak hours are the top 10% of hourly demand.</p>
+
+      <div class="panel">
+        <div class="panel-head"><h3>One forecast, explained: 20 Mar 2025, 4 pm</h3></div>
+        <div class="wf" id="wf"></div>
+      </div>
+      <p class="note">The neighbour feature has the smallest attribution, about <span id="nbAll"></span> MW on average and <span id="nbPeak"></span> MW in peak hours. A linear model can only use neighbouring load as a straight-line adjustment, which is one reason the graph attention network remains the main next step.</p>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="roadmap">
+  <div class="wrap">
+    <div class="rail"><b>08</b>Discussion &amp; future work</div>
+    <div class="body">
+      <h2>From linear stand-in to graph attention network</h2>
+      <p>On real data the federated system works once each state can personalise the shared model. The graph feature's benefit is small with a linear model and state-level data. States are large, and their demand is driven mostly by their own daily cycle. The open question for the next stage is whether a graph attention network, or finer zones such as substations, gets more out of neighbouring load.</p>
+      <div class="road">
+        <div class="col"><h3>Built</h3>
+          <ul>
+            <li><span class="chip done">Done</span>Real six-state dataset with copied-day removal, holidays and weather</li>
+            <li><span class="chip done">Done</span>Sample-weighted FedAvg with personalised fine-tuning</li>
+            <li><span class="chip done">Done</span>One-hop neighbour feature from bordering states</li>
+            <li><span class="chip done">Done</span>SHAP attributions in MW, overall and in peak hours</li>
+            <li><span class="chip done">Done</span>Five-seed evaluation on a full held-out year</li>
+          </ul></div>
+        <div class="col"><h3>Next</h3>
+          <ul>
+            <li><span class="chip next">Planned</span>Graph attention network in PyTorch Geometric</li>
+            <li><span class="chip next">Planned</span>Flower federated framework and FedProx</li>
+            <li><span class="chip next">Planned</span>Substation or district data from TGTRANSCO</li>
+            <li><span class="chip next">Planned</span>Earlier years, 2017–2022</li>
+            <li><span class="chip next">Planned</span>SHAP vs GNNExplainer, communication cost</li>
+          </ul></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="cite">
+  <div class="wrap">
+    <div class="rail"><b>—</b>Team &amp; citation</div>
+    <div class="body">
+      <h2>Cite this work</h2>
+      <div class="team">
+        <div><b>B. Bethi Ikshitha</b><span>Dept. of CSE, KLEF Hyderabad</span></div>
+        <div><b>G. Srivardhan Rao</b><span>Dept. of CSE, KLEF Hyderabad</span></div>
+        <div><b>B. Bala Karthik Vinay</b><span>Dept. of CSE, KLEF Hyderabad</span></div>
+      </div>
+      <div class="bib">
+        <button class="copy" type="button" id="copyBib">Copy BibTeX</button>
+<pre id="bibText">@unpublished{ikshitha2026fedgrid,
+  title  = {An Explainable Federated Graph Neural Network Framework for
+            Privacy-Preserving Short-Term Electricity Load Forecasting
+            in Smart Grids},
+  author = {{B. Bethi Ikshitha} and {G. Srivardhan Rao} and
+            {B. Bala Karthik Vinay}},
+  note   = {Manuscript prepared for IJERESM. Koneru Lakshmaiah
+            Education Foundation, Hyderabad},
+  year   = {2026}
+}</pre>
+      </div>
+
+      <h3 style="margin-top:36px">Data sources</h3>
+      <p class="note">Hourly state demand met: Grid-India, via <a href="https://iced.niti.gov.in/energy/electricity/distribution/national-level-consumption/load-curve">NITI Aayog ICED</a>. Hourly temperature: <a href="https://open-meteo.com/en/docs/historical-weather-api">Open-Meteo historical weather</a>. Holidays: the <span class="mono" style="font-size:14px">holidays</span> Python package, state calendars.</p>
+
+      <h3 style="margin-top:36px">References</h3>
+      <ol class="refs">
+        <li><span>H. Wang, Y. Zhao, S. He, Y. Xiao, J. Tang, and Z. Cai, “Federated learning-based privacy-preserving electricity load forecasting scheme in edge computing scenario,” <i>International Journal of Communication Systems</i>, vol. 37, no. 5, e5670, 2023. <a href="https://doi.org/10.1002/dac.5670">doi:10.1002/dac.5670</a></span></li>
+        <li><span>Y. Li et al., “Fed-SAD: A secure aggregation federated learning method for distributed short-term load forecasting,” <i>IET Generation, Transmission &amp; Distribution</i>, vol. 17, no. 22, pp. 5090–5100, 2023. <a href="https://doi.org/10.1049/gtd2.13022">doi:10.1049/gtd2.13022</a></span></li>
+        <li><span>C. Sun, Y. Ning, D. Shen, and T. Nie et al., “Graph Neural Network-Based Short-Term Load Forecasting with Temporal Convolution,” <i>Data Science and Engineering</i>, vol. 9, pp. 113–132, 2024. <a href="https://doi.org/10.1007/s41019-023-00233-8">doi:10.1007/s41019-023-00233-8</a></span></li>
+        <li><span>M. A. A. Sarker, B. Shanmugam, S. Azam, and S. Thennadil, “Enhancing smart grid load forecasting: An attention-based deep learning model integrated with federated learning and XAI for security and interpretability,” <i>Intelligent Systems with Applications</i>, vol. 23, 200422, 2024. <a href="https://doi.org/10.1016/j.iswa.2024.200422">doi:10.1016/j.iswa.2024.200422</a></span></li>
+        <li><span>“Electricity demand forecasting at distribution and household levels using explainable causal graph neural network,” <i>Energy and AI</i>, vol. 16, 100368, 2024. <a href="https://doi.org/10.1016/j.egyai.2024.100368">doi:10.1016/j.egyai.2024.100368</a></span></li>
+        <li><span>“Adaptive Single-layer Aggregation Framework for Energy-efficient and Privacy-preserving Load Forecasting in Heterogeneous Federated Smart Grids,” <i>Internet of Things</i>, vol. 28, 101376, 2024. <a href="https://doi.org/10.1016/j.iot.2024.101376">doi:10.1016/j.iot.2024.101376</a></span></li>
+        <li><span>H. Jiang, Y. Dong, Y. Dong, and J. Wang, “Power load forecasting based on spatial–temporal fusion graph convolution network,” <i>Technological Forecasting and Social Change</i>, vol. 204, 123435, 2024. <a href="https://doi.org/10.1016/j.techfore.2024.123435">doi:10.1016/j.techfore.2024.123435</a></span></li>
+        <li><span>“A Multi-Scale Spatial–Temporal Graph Neural Network-Based Method of Multienergy Load Forecasting in Integrated Energy System,” <i>IEEE Transactions on Smart Grid</i>, vol. 15, no. 3, pp. 2652–2666, 2024. <a href="https://doi.org/10.1109/TSG.2023.3315750">doi:10.1109/TSG.2023.3315750</a></span></li>
+        <li><span>R. Rahman, N. Kumar, and D. C. Nguyen, “Electrical Load Forecasting in Smart Grid: A Personalized Federated Learning Approach,” arXiv:2411.10619, 2024. <a href="https://arxiv.org/abs/2411.10619">arXiv:2411.10619</a></span></li>
+        <li><span>M. Yang et al., “Federated Two-Edge Graph Attention Network with Weighted Global Aggregation for Electricity Consumption Demand Forecasting,” <i>Scientific Reports</i>, vol. 15, 45792, 2025. <a href="https://doi.org/10.1038/s41598-025-28610-5">doi:10.1038/s41598-025-28610-5</a></span></li>
+        <li><span>“Federated Hybrid Graph Attention Network with Two-Step Optimization for Electricity Consumption Forecasting,” <i>Energies</i>, vol. 18, no. 17, 4465, 2025. <a href="https://doi.org/10.3390/en18174465">doi:10.3390/en18174465</a></span></li>
+      </ol>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>FedGrid · Dept. of CSE, Koneru Lakshmaiah Education Foundation, Hyderabad</span>
+    <span>Data: Grid-India via NITI Aayog ICED. The grid animation is illustrative.</span>
+  </div>
+</footer>
+
+<script>
+var RES=__RESULTS__, SHAPR=__SHAP__, EX=__EXAMPLE__, WEEK=__WEEK__, DQ=__DQ__;
+(function(){
+  var NAMES={TG:"Telangana",AP:"Andhra Pradesh",KA:"Karnataka",TN:"Tamil Nadu",KL:"Kerala",PY:"Puducherry"};
+  var ORDER=["TG","AP","KA","TN","KL","PY"];
+  function fmt(n,d){return n.toLocaleString("en-IN",{minimumFractionDigits:d,maximumFractionDigits:d});}
+  function pct(a,b){return (b-a)/a*100;}
+  function fmtPct(p){return (p>0?"+":p<0?"−":"")+Math.abs(p).toFixed(Math.abs(p)<1?2:1)+"%";}
+
+  /* data table */
+  document.getElementById("dataRows").innerHTML=ORDER.map(function(z){var q=DQ.per_zone[z];
+    return "<tr"+(z==="TG"?' class="ours"':"")+"><td>"+NAMES[z]+'</td><td class="n">'+fmt(q.mean_mw,0)+'</td><td class="n">'+fmt(q.max_mw,0)+'</td><td class="n">'+q.copied_days_removed+'</td><td class="n">'+q.holiday_days+"</td></tr>";}).join("");
+
+  /* results */
+  var MODELS=[
+    {k:"central_local",name:"Centralized, local",tag:"one pooled model",cls:""},
+    {k:"central_graph",name:"Centralized, graph-aware",tag:"one pooled model",cls:""},
+    {k:"fed_local",name:"FedAvg, local",tag:"plain federated",cls:"fed"},
+    {k:"fed_graph",name:"FedAvg, graph-aware",tag:"plain federated",cls:"fed"},
+    {k:"solo_graph",name:"Each state alone",tag:"no sharing",cls:""},
+    {k:"fed_local_ft",name:"Personalised, local",tag:"FedAvg + fine-tune",cls:"fed"},
+    {k:"fed_graph_ft",name:"Personalised, graph-aware",tag:"FedGrid",cls:"ours"}
+  ];
+  var mNames={mae:"MAE by model, MW",rmse:"RMSE by model, MW",mape:"MAPE by model, %",peak_mae:"Peak-hour MAE by model, MW"};
+  var state={m:"rmse",p:"test"};
+  function niceMax(v){var mag=Math.pow(10,Math.floor(Math.log10(v)));var st=[1,2,2.5,5,10];for(var i=0;i<st.length;i++){var s=st[i]*mag/2;var top=Math.ceil(v*1.06/s)*s;if(top/s<=6)return{top:top,step:s};}return{top:Math.ceil(v*1.06/mag)*mag,step:mag};}
+  function axis(el,top,step){el.innerHTML="";for(var t=0;t<=top+1e-9;t+=step){var s=document.createElement("span");s.style.left=(t/top*100)+"%";s.textContent=fmt(Math.round(t*100)/100,t<10&&step<1?1:0);el.appendChild(s);}}
+  function rows(container,items){container.innerHTML="";items.forEach(function(it){var lab=document.createElement("div");lab.className="lab";lab.innerHTML=it.label;var tr=document.createElement("div");tr.className="track";var f=document.createElement("div");f.className="fill "+(it.cls||"");var v=document.createElement("span");v.className="val";tr.appendChild(f);tr.appendChild(v);container.appendChild(lab);container.appendChild(tr);it.f=f;it.v=v;});}
+  var mr=MODELS.map(function(m){return{label:m.name+"<small>"+m.tag+"</small>",cls:m.cls,k:m.k};});
+  rows(document.getElementById("modelBars"),mr);
+  function get(k,p,m){return RES.models[k][p].pooled[m].mean;}
+  function draw(){
+    var m=state.m,p=state.p,dec=m==="mape"?2:1;
+    var vals=mr.map(function(r){return get(r.k,p,m);});var n=niceMax(Math.max.apply(null,vals));
+    mr.forEach(function(r,i){var w=vals[i]/n.top*100;r.f.style.width=w+"%";r.v.style.left=w+"%";r.v.textContent=fmt(vals[i],dec);});
+    axis(document.getElementById("modelAxis"),n.top,n.step);
+    document.getElementById("metricTitle").textContent=mNames[m]+(p==="extra"?", Jan–Feb 2026":", 2025");
+    function cell(lbl,a,b,desc){var d=pct(get(a,p,m),get(b,p,m));return '<div><div class="k">'+lbl+'</div><div class="v '+(d<0?"good":"bad")+'">'+fmtPct(d)+'</div><div class="d">'+desc+": "+fmt(get(a,p,m),dec)+" → "+fmt(get(b,p,m),dec)+"</div></div>";}
+    document.getElementById("deltas").innerHTML=cell("Personalisation","fed_graph","fed_graph_ft","plain → personalised")+cell("Graph feature","fed_local_ft","fed_graph_ft","personalised, local → graph")+cell("vs each state alone","solo_graph","fed_graph_ft","alone → personalised federated");
+    Array.prototype.forEach.call(document.querySelectorAll("#metricSeg button"),function(b){b.setAttribute("aria-pressed",b.dataset.k===m?"true":"false");});
+    Array.prototype.forEach.call(document.querySelectorAll("#periodSeg button"),function(b){b.setAttribute("aria-pressed",b.dataset.k===p?"true":"false");});
+  }
+  document.getElementById("metricSeg").addEventListener("click",function(e){var b=e.target.closest("button");if(b){state.m=b.dataset.k;draw();}});
+  document.getElementById("periodSeg").addEventListener("click",function(e){var b=e.target.closest("button");if(b){state.p=b.dataset.k;draw();}});
+  draw();
+  document.getElementById("resRows").innerHTML=MODELS.map(function(md){var P=RES.models[md.k].test.pooled;
+    function c(m,d){return '<td class="n">'+fmt(P[m].mean,d)+' <span style="color:var(--ink-3)">± '+fmt(P[m].std,d)+"</span></td>";}
+    return "<tr"+(md.k==="fed_graph_ft"?' class="ours"':"")+"><td>"+md.name+"</td>"+c("mae",1)+c("rmse",1)+c("mape",2)+c("peak_mae",1)+"</tr>";}).join("");
+
+  /* per-state table */
+  document.getElementById("zoneRows").innerHTML=ORDER.map(function(z){var a=RES.models.fed_graph.test.per_zone[z].rmse,b=RES.models.fed_graph_ft.test.per_zone[z].rmse,c=RES.models.solo_graph.test.per_zone[z].rmse;
+    return "<tr"+(z==="TG"?' class="ours"':"")+"><td>"+NAMES[z]+'</td><td class="n">'+fmt(a,1)+'</td><td class="n">'+fmt(b,1)+'</td><td class="n">'+fmt(c,1)+'</td><td class="n">'+fmtPct(pct(a,b))+"</td></tr>";}).join("");
+
+  /* Telangana KPIs */
+  var tgP=RES.models.fed_graph.test.per_zone.TG,tgF=RES.models.fed_graph_ft.test.per_zone.TG;
+  document.getElementById("tgKpis").innerHTML=
+    '<div><div class="k">Telangana MAPE, 2025</div><div class="v">'+fmt(tgF.mape,2)+'%</div><div class="d">personalised federated</div></div>'+
+    '<div><div class="k">RMSE vs plain FedAvg</div><div class="v" style="color:var(--model)">'+fmtPct(pct(tgP.rmse,tgF.rmse))+'</div><div class="d">'+fmt(tgP.rmse,0)+" → "+fmt(tgF.rmse,0)+' MW</div></div>'+
+    '<div><div class="k">Peak-hour MAE</div><div class="v">'+fmt(tgF.peak_mae,0)+' MW</div><div class="d">top 10% hours, was '+fmt(tgP.peak_mae,0)+"</div></div>";
+
+  /* Telangana week chart */
+  (function(){
+    var NS="http://www.w3.org/2000/svg",svg=document.getElementById("tgChart");
+    function el(t,a){var e=document.createElementNS(NS,t);for(var k in a)e.setAttribute(k,a[k]);svg.appendChild(e);return e;}
+    var W=760,H=300,L=56,R=12,T=14,B=34;
+    var all=WEEK.actual.concat(WEEK.fed_graph_ft,WEEK.fed_graph);
+    var lo=Math.floor(Math.min.apply(null,all)/1000)*1000,hi=Math.ceil(Math.max.apply(null,all)/1000)*1000;
+    var n=WEEK.actual.length;
+    function x(i){return L+(W-L-R)*i/(n-1);} function y(v){return T+(H-T-B)*(1-(v-lo)/(hi-lo));}
+    for(var v=lo;v<=hi;v+=2000){el("line",{x1:L,x2:W-R,y1:y(v),y2:y(v),class:"ax"});var t=el("text",{x:L-8,y:y(v)+4,"text-anchor":"end",class:"tk"});t.textContent=fmt(v,0);}
+    var DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    for(var i=0;i<n;i+=24){var d=new Date(WEEK.ts[i].replace(" ","T"));var t2=el("text",{x:x(i+12),y:H-12,"text-anchor":"middle",class:"tk"});t2.textContent=DOW[d.getDay()]+" "+d.getDate();if(i>0)el("line",{x1:x(i),x2:x(i),y1:T,y2:H-B,class:"ax"});}
+    function path(s,cls){el("path",{d:s.map(function(v,i){return(i?"L":"M")+x(i).toFixed(1)+","+y(v).toFixed(1);}).join(""),class:cls});}
+    path(WEEK.fed_graph,"s-fed");path(WEEK.fed_graph_ft,"s-ft");path(WEEK.actual,"s-act");
+    var im=WEEK.actual.indexOf(Math.max.apply(null,WEEK.actual));
+    el("circle",{cx:x(im),cy:y(WEEK.actual[im]),r:4,class:"pk"});
+    var lb=el("text",{x:x(im)+8,y:y(WEEK.actual[im])-6,class:"pkl"});lb.textContent=fmt(WEEK.actual[im],0)+" MW";
+  })();
+
+  /* SHAP */
+  var FD={lagH:"load 3 h earlier",lag24:"load 24 h earlier",lag168:"load one week earlier",hod_sin:"hour of day, sine",hod_cos:"hour of day, cosine",is_weekend:"weekend",is_holiday:"state holiday",temperature_c:"temperature",neighbor_lagH:"bordering states' load"};
+  var shapBars=document.getElementById("shapBars");
+  function setW(w){
+    var obj=SHAPR.telangana_personalised_mw[w];var keys=Object.keys(obj).sort(function(a,b){return obj[b]-obj[a];});
+    var mx=Math.max.apply(null,keys.map(function(k){return Math.max(SHAPR.telangana_personalised_mw.all_hours[k],SHAPR.telangana_personalised_mw.peak_windows[k]);}));
+    var nn=niceMax(mx);
+    var rs=keys.map(function(k){return{label:'<span class="mono" style="font-size:13.5px">'+k+"</span><small>"+FD[k]+"</small>",cls:k==="neighbor_lagH"?"ours":k==="temperature_c"?"surge":"fed",k:k};});
+    rows(shapBars,rs);rs.forEach(function(r){var wd=obj[r.k]/nn.top*100;r.f.style.width=wd+"%";r.v.style.left=wd+"%";r.v.textContent=fmt(obj[r.k],1);});
+    axis(document.getElementById("shapAxis"),nn.top,nn.step);
+    Array.prototype.forEach.call(document.querySelectorAll("#shapSeg button"),function(b){b.setAttribute("aria-pressed",b.dataset.k===w?"true":"false");});
+  }
+  document.getElementById("shapSeg").addEventListener("click",function(e){var b=e.target.closest("button");if(b)setW(b.dataset.k);});
+  setW("all_hours");
+  document.getElementById("nbAll").textContent=fmt(SHAPR.telangana_personalised_mw.all_hours.neighbor_lagH,1);
+  document.getElementById("nbPeak").textContent=fmt(SHAPR.telangana_personalised_mw.peak_windows.neighbor_lagH,1);
+
+  /* worked example */
+  var C=EX.contributions_mw,ks=Object.keys(C),mxc=Math.max.apply(null,ks.map(function(k){return Math.abs(C[k]);}));
+  var SM='<small style="display:block;font-family:var(--f-mono);font-size:11px;color:var(--ink-3)">';
+  function row(l,bar,v,cls){return '<div class="wfr'+(cls?" "+cls:"")+'"><div class="l">'+l+'</div><div class="bar2">'+bar+'</div><div class="v">'+v+'</div></div>';}
+  var h=row("Typical forecast"+SM+"model baseline</small>","",fmt(EX.baseline_mw,0)+" MW");
+  ks.forEach(function(k){var v=C[k],w=Math.abs(v)/mxc*100;h+=row('<span class="mono" style="font-size:13px">'+k+'</span>'+SM+FD[k]+'</small>','<i class="'+(v<0?"neg":"")+'" style="left:0;width:'+Math.max(w,.6)+'%"></i>',(v>=0?"+":"−")+fmt(Math.abs(v),0)+" MW");});
+  h+=row("Forecast","",fmt(EX.predicted_mw,0)+" MW","tot")+row("Actual","",fmt(EX.actual_mw,0)+" MW");
+  document.getElementById("wf").innerHTML=h;
+
+  /* copy BibTeX */
+  var cb=document.getElementById("copyBib");
+  cb.addEventListener("click",function(){var txt=document.getElementById("bibText").textContent;function sel(){var r=document.createRange();r.selectNodeContents(document.getElementById("bibText"));var s=window.getSelection();s.removeAllRanges();s.addRange(r);cb.textContent="Selected, press Ctrl+C";}
+    try{navigator.clipboard.writeText(txt).then(function(){cb.textContent="Copied";setTimeout(function(){cb.textContent="Copy BibTeX";},1800);},sel);}catch(e){sel();}});
+
+  /* grid diagram: real states, real borders (layout approximates the map) */
+  var NSs="http://www.w3.org/2000/svg",g=document.getElementById("grid");
+  function e2(t,a,p){var e=document.createElementNS(NSs,t);for(var k in a)e.setAttribute(k,a[k]);(p||g).appendChild(e);return e;}
+  var P={TG:[220,100],AP:[330,190],KA:[110,205],TN:[250,325],KL:[120,365],PY:[360,345]};
+  var LBL={TG:[0,-40,"middle"],AP:[32,4,"start"],KA:[-32,4,"end"],TN:[0,44,"middle"],KL:[0,44,"middle"],PY:[32,4,"start"]};
+  var SRV=[405,62];
+  var E=[["TG","AP"],["TG","KA"],["AP","KA"],["AP","TN"],["KA","TN"],["KA","KL"],["TN","KL"],["TN","PY"]];
+  var nb={};ORDER.forEach(function(z){nb[z]=[];});E.forEach(function(e){nb[e[0]].push(e[1]);nb[e[1]].push(e[0]);});
+  var gSp=e2("g",{}),gEd=e2("g",{}),gHalo=e2("g",{}),gPk=e2("g",{}),gNd=e2("g",{});
+  ORDER.forEach(function(z){e2("line",{x1:P[z][0],y1:P[z][1],x2:SRV[0],y2:SRV[1],class:"spoke"},gSp);});
+  E.forEach(function(e){e2("line",{x1:P[e[0]][0],y1:P[e[0]][1],x2:P[e[1]][0],y2:P[e[1]][1],class:"edge"},gEd);});
+  var halos={},rings={};
+  ORDER.forEach(function(z){var p=P[z];
+    halos[z]=e2("circle",{cx:p[0],cy:p[1],r:28,class:"halo",opacity:0},gHalo);
+    e2("circle",{cx:p[0],cy:p[1],r:25,class:"node"},gNd);
+    rings[z]=e2("circle",{cx:p[0],cy:p[1],r:20,class:"ring"},gNd);
+    var t=e2("text",{x:p[0],y:p[1]+4.5,"text-anchor":"middle",class:"nlabel"},gNd);t.textContent=z;
+    var lb=LBL[z];var tt=e2("text",{x:p[0]+lb[0],y:p[1]+lb[1],"text-anchor":lb[2],class:"ntype"},gNd);tt.textContent=NAMES[z].toUpperCase();
+  });
+  e2("rect",{x:SRV[0]-46,y:SRV[1]-24,width:92,height:48,rx:5,class:"agg"},gNd);
+  var at=e2("text",{x:SRV[0],y:SRV[1]-2,"text-anchor":"middle",class:"aggt"},gNd);at.textContent="Σ FedAvg";
+  var as=e2("text",{x:SRV[0],y:SRV[1]+14,"text-anchor":"middle",class:"aggs"},gNd);as.textContent="server";
+  var aggRect=gNd.querySelector("rect");
+  var pk={};ORDER.forEach(function(z){pk[z]=e2("circle",{r:4.5,class:"pkt",opacity:0},gPk);});
+  var roundLabel=document.getElementById("roundLabel");
+  var DQm={};ORDER.forEach(function(z){DQm[z]=DQ.per_zone[z].mean_mw/DQ.per_zone[z].max_mw;});
+  var ph={TG:0,AP:1.3,KA:2.1,TN:3.4,KL:4.2,PY:5.0};
+  function setRing(z,l){var c=2*Math.PI*20;rings[z].setAttribute("stroke-dasharray",(c*l).toFixed(1)+" "+c.toFixed(1));rings[z].setAttribute("transform","rotate(-90 "+P[z][0]+" "+P[z][1]+")");}
+  function load(z,t){return Math.max(.2,Math.min(.97,DQm[z]+.2*Math.sin(t*.0009+ph[z])+.06*Math.sin(t*.0031+ph[z]*2)));}
+  ORDER.forEach(function(z){setRing(z,load(z,0));});
+  var reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if(reduce){roundLabel.textContent="Round 40 / 40";return;}
+  var ROUND=3400,t0=null,surge=null,last=0;
+  function ease(x){return x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;}
+  function frame(ts){
+    if(t0===null)t0=ts;var t=ts-t0,r=Math.floor(t/ROUND),p=(t%ROUND)/ROUND,round=(r%40)+1;
+    if(round!==last){last=round;roundLabel.textContent="Round "+(round<10?"0":"")+round+" / 40";if(round%5===2){surge={o:ORDER[Math.floor(Math.random()*6)],t:t};}}
+    ORDER.forEach(function(z){setRing(z,load(z,t));var c=pk[z],q,on=true,a=P[z];
+      if(p<.35){q=ease(p/.35);c.setAttribute("cx",a[0]+(SRV[0]-a[0])*q*.9);c.setAttribute("cy",a[1]+(SRV[1]-a[1])*q*.9);}
+      else if(p>=.5&&p<.85){q=ease((p-.5)/.35);c.setAttribute("cx",SRV[0]+(a[0]-SRV[0])*(.1+q*.78));c.setAttribute("cy",SRV[1]+(a[1]-SRV[1])*(.1+q*.78));}
+      else on=false;c.setAttribute("opacity",on?1:0);halos[z].setAttribute("opacity",0);});
+    aggRect.style.strokeWidth=(p>=.33&&p<.52)?"3":"1.6";
+    if(surge){var dt=t-surge.t;
+      function bump(z,delay,amp){var xx=(dt-delay)/1400;if(xx>0&&xx<1){var v=Math.sin(xx*Math.PI)*amp;if(v>+halos[z].getAttribute("opacity")){halos[z].setAttribute("opacity",v.toFixed(3));halos[z].setAttribute("r",(28+xx*14).toFixed(1));}}}
+      bump(surge.o,0,.42);nb[surge.o].forEach(function(n){bump(n,650,.26);});if(dt>2400)surge=null;}
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
